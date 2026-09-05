@@ -14,8 +14,8 @@ firmware/sim/*.png
 firmware/device-files/git/keys/*
 !firmware/device-files/git/keys/.gitkeep
 firmware/device-files/git/known_hosts
-docsite/node_modules/
-docsite/build/
-docsite/.docusaurus/
+docs/node_modules/
+docs/build/
+docs/.docusaurus/
 .DS_Store
 *.swp
