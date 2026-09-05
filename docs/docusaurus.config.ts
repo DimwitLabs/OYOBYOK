@@ -5,7 +5,8 @@ import type * as Preset from "@docusaurus/preset-classic";
 import type { Config } from "@docusaurus/types";
 import { themes as prismThemes } from "prism-react-renderer";
 
-const ORG = "DeepanshKhurana";
+const ORG = "DimwitLabs";
+const DOMAIN = "oyobyok.dimwit.me";
 const NAME = "OYOBYOK";
 const REPO = `https://github.com/${ORG}/${NAME}`;
 
@@ -25,9 +26,9 @@ const config: Config = {
   tagline: "Own Your Own Bring Your Own Keyboard",
   favicon: "img/oyobyok.svg",
 
-  // GitHub Pages for a project repository: https://<org>.github.io/<repo>/
-  url: `https://${ORG.toLowerCase()}.github.io`,
-  baseUrl: `/${NAME}/`,
+  // GitHub Pages behind a custom domain, so the site lives at the root. static/CNAME keeps the domain across deploys.
+  url: `https://${DOMAIN}`,
+  baseUrl: "/",
   trailingSlash: false,
 
   organizationName: ORG,
