@@ -1,10 +1,17 @@
 # OYOBYOK
 
-[![AI-DECLARATION: copilot](https://img.shields.io/badge/䷼%20AI--DECLARATION-copilot-fee2e2?labelColor=fee2e2)](https://ai-declaration.md)
+[![Docs](https://img.shields.io/github/actions/workflow/status/DimwitLabs/OYOBYOK/docs.yml?branch=main&label=docs)](https://github.com/DimwitLabs/OYOBYOK/actions/workflows/docs.yml?query=branch%3Amain)
+[![AI-DECLARATION: copilot](https://img.shields.io/badge/䷼%20AI--DECLARATION-copilot-fee2e2?labelColor=fee2e2)](AI-DECLARATION.md)
+[![Dimwit Pledge](https://dimwit.me/pledge.svg)](https://dimwit.me/pledge)
 
 > Own Your Own Bring Your Own Keyboard.
 
 <p align="center"><img src="docs/static/img/screens/splash.png" alt="The boot splash" width="100%" /></p>
+
+<p align="center"><a href="https://oyobyok.dimwit.me">oyobyok.dimwit.me</a></p>
+
+> [!NOTE]
+> This project is backed by the [Dimwit Pledge](https://dimwit.me/pledge).
 
 OYOBYOK is an alternative firmware for the BYOK writing device, written entirely in C on ESP-IDF. It keeps the parts of the device that make it lovely to write on, the paper-like screen, the five buttons, the Bluetooth keyboard, the SD card full of plain text files, and replaces the cloud with things you already own: a Git repository over SSH, or an SFTP server in your house. Your writing goes where you say it goes, signed with your key, and nowhere else.
 
