@@ -93,10 +93,10 @@ The device restarts into the splash screen, then the main menu. From here, [Firs
 
 Things that have gone wrong and how to get out of them.
 
-**The screen is dark and nothing happens.** If the device still shows a serial port, it is not bricked. The ROM bootloader is in mask ROM and `esptool --before default_reset` reaches it whatever the application is doing. Flash again.
+**The screen is dark and nothing happens:** If the device still shows a serial port, it is not bricked. The ROM bootloader is in mask ROM and `esptool --before default_reset` reaches it whatever the application is doing. Flash again.
 
-**No serial port at all, and the device is not in Disk Mode.** Disk Mode hands the single USB PHY from the serial console to USB-OTG, and a soft reset does not hand it back, which is why Disk Mode is exited by a power-cycle. If the port has gone missing for any reason, unplug the device, hold POWER until the screen goes dark (on the dock the USB power keeps the board alive, so it has to be unplugged), plug it back in. If that does not bring the port back, use the hammer loop above while holding POWER.
+**No serial port at all, and the device is not in Disk Mode:** Disk Mode hands the single USB PHY from the serial console to USB-OTG, and a soft reset does not hand it back, which is why Disk Mode is exited by a power-cycle. If the port has gone missing for any reason, unplug the device, hold POWER until the screen goes dark (on the dock the USB power keeps the board alive, so it has to be unplugged), plug it back in. If that does not bring the port back, use the hammer loop above while holding POWER.
 
-**The device turns itself off the moment it leaves the dock.** GPIO42 is the power keep-alive latch and the firmware drives it low as the very first thing in `app_main`. If you are hacking on the firmware and see this, that is where to look.
+**The device turns itself off the moment it leaves the dock:** GPIO42 is the power keep-alive latch and the firmware drives it low as the very first thing in `app_main`. If you are hacking on the firmware and see this, that is where to look.
 
-**Going back to stock.** Write the backup you made to offset 0 as shown above. Then, because stock keeps its own partition layout, the device is exactly as it was.
+**Going back to stock:** Write the backup you made to offset 0 as shown above. Then, because stock keeps its own partition layout, the device is exactly as it was.

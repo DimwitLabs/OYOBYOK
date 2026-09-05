@@ -18,8 +18,8 @@ You will want a keyboard for actual writing, and for typing a WiFi password. Eve
 The firmware expects a FAT-formatted SD card with two folders at the top:
 
 ```
-/projects/          one folder per project, text files inside
-/git/               configuration and keys
+/projects/
+/git/
 ```
 
 Both are created when needed, but the git folder is easiest to fill from your computer. Choose Disk Mode from the main menu and the SD card appears as a USB drive named OYOBYOK Disk. Copy things over, eject, then unplug and power the device off and on again (Disk Mode ends with a power-cycle; [Flashing](flashing#recovery) explains why).

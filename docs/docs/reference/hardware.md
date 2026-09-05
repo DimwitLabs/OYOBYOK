@@ -17,6 +17,10 @@ What the BYOK B01 is made of and how the firmware talks to it. Everything on thi
 
 ## GPIO map
 
+:::note[Take this with a grain of salt]
+All the GPIOs are best guesses and may or may not be the correct ones on paper but for the purpose of this build, they work.
+:::
+
 | GPIO | Function | Notes |
 | --- | --- | --- |
 | 42 | Power keep-alive latch | Output, active low. Driven low first thing at boot and held there. Driving it high powers the device off on battery. |
@@ -77,4 +81,6 @@ The layout matches the stock firmware's app slots so that restoring the stock im
 
 ## Things to leave alone
 
+:::danger[Learned from experience]
 If you are extending the firmware: do not toggle GPIO19/20 (USB, the device loses its serial port until the battery is drained or it is power-cycled), do not drive GPIO42 high unless you mean to power off, and do not sweep unknown GPIOs looking for peripherals. The list above is what is known to be safe.
+:::

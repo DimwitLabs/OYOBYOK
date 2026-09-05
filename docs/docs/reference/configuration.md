@@ -26,13 +26,13 @@ One `[section]` per project folder, plus an optional `[identity]` section. Lines
 
 ```ini
 [identity]
-name  = Your Name
+name = Your Name
 email = you@example.com
 
 [Drafts]
 remote = git@github.com:you/drafts.git
 branch = main
-key    = keys/oyobyok_rsa
+key = keys/oyobyok_rsa
 
 [Novel]
 remote = git@gitlab.com:you/novel.git
@@ -53,10 +53,10 @@ One `[section]` per server; the name is what the menu shows.
 
 ```ini
 [Laptop]
-host        = 192.168.1.20
-port        = 22
-user        = you
-key         = keys/oyobyok_rsa
+host = 192.168.1.20
+port = 22
+user = you
+key = keys/oyobyok_rsa
 remote_path = OYOBYOK
 ```
 

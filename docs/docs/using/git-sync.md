@@ -23,7 +23,9 @@ Status fetches and shows how many commits you are ahead and behind, and how many
 
 If the same lines changed on both sides, the file on the device ends up with both versions between `<<<<<<<` and `>>>>>>>` markers, committed and pushed like that. Nothing is lost; open it on a computer, keep the half you want, commit. Files that changed on only one side merge cleanly, as does the same file edited in different places.
 
-If you would rather pick a side on the device, the conflict screen offers Take remote (your version is saved on a `mine-<timestamp>` branch first, then the folder is reset to the remote) or Keep mine (your version is force-pushed over the remote, with a lease so nobody else's newer push is trampled).
+:::note[Sensible defaults]
+This way of handling conflicts may not seem natural if you are a programmer but for prose this is a sensible default and a good middle-ground. The idea is that a person will be able to edit it on a larger device later and know that only one, self-contained commit tagged `oyobyok` will have these.
+:::
 
 ## Commits
 

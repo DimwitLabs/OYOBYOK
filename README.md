@@ -1,11 +1,13 @@
 # OYOBYOK
 
+[![AI-DECLARATION: copilot](https://img.shields.io/badge/䷼%20AI--DECLARATION-copilot-fee2e2?labelColor=fee2e2)](https://ai-declaration.md)
+
 > Own Your Own Bring Your Own Keyboard.
 
 OYOBYOK is an alternative firmware for the BYOK writing device, written entirely in C on ESP-IDF. It keeps the parts of the device that make it lovely to write on, the paper-like screen, the five buttons, the Bluetooth keyboard, the SD card full of plain text files, and replaces the cloud with things you already own: a Git repository over SSH, or an SFTP server in your house. Your writing goes where you say it goes, signed with your key, and nowhere else.
 
 > [!NOTE]
-> BYOK is a trademark of [BYOK](https://byok.io/). This project is not affiliated with, endorsed by, or supported by them. OYOBYOK is an independent firmware written for people who bought a BYOK and want more control over it. Buy their device, it is a good one; then decide for yourself what runs on it.
+> BYOK is a trademark of [BYOK](https://byok.io/). This project is not affiliated with, endorsed by, or supported by them. OYOBYOK is an independent firmware written for people who bought a BYOK and want more control over it. Buy their device, it is a good one; then decide for yourself what runs on it. Note that using a custom firmware is your own decision and that the folks at BYOK reserve every right to terminate your license and support for this cause. 
 
 > [!WARNING]
 > This firmware has been built and tested on exactly one BYOK, a model B01 from the early batch. Flashing replaces the stock firmware. Read the flashing guide all the way through before you do anything, and back up the stock image first so you can always go back.
@@ -33,21 +35,6 @@ The docs site lives in [docs/](docs/) and is published to GitHub Pages. Start wi
 
 Releases are listed in [CHANGELOG.md](CHANGELOG.md).
 
-## Repository layout
-
-```
-firmware/
-  main/            entry point, device hooks, background network task
-  shared/          the app core (UI state machine, renderer, menus), compiled by both device and emulator
-  components/      one ESP-IDF component per subsystem: lcd, buttons, power, led, wifi, blehid, ssh, git, disk, host
-  components/libgit2   libgit2 1.8.7, vendored with two small changes for this target
-  sim/             desktop emulator and tests (make emu, make test)
-  patches/         the ESP-IDF patch for the NimBLE HID host
-  device-files/    templates for the git folder on the SD card
-  flash.sh         flashes a built image
-docs/              the Docusaurus site
-```
-
 ## Emulator
 
 ```bash
@@ -60,4 +47,4 @@ The emulator runs the same app core the device does. It reads key tokens from st
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT License](LICENSE).
