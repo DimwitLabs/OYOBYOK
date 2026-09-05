@@ -24,7 +24,7 @@ The names Back, New Project and Manage are reserved, because they are rows in th
 
 Text wraps at word boundaries to the width of the screen. Long words that do not fit a line are broken at the edge. The cursor is a vertical bar or an underline, depending on the cursor setting.
 
-Files are saved when you leave the editor. There is no autosave while typing, so leave the editor before you power off. A file that fails to save (no SD card, say) stays open with a message instead of being lost.
+Files are written when you leave the editor, with Esc or Ctrl-S; both save and close, and there is no autosave while typing. Holding POWER cuts the power without saving, so leave the editor first. If the save fails (no SD card, say) you get a message and are put back in the editor with your text still there.
 
 ## Layouts
 

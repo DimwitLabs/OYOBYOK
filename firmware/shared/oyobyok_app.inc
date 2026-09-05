@@ -849,7 +849,7 @@ static void app_enter(void){
         }
         if(nSel==0){ char p[600]; snprintf(p,sizeof p,"%s/%.63s",cur_dir(),mgTarget); if(mgIsDir) rm_rf(p); else unlink(p); }
         browser_refill(); screen=SCR_LIST;
-    } else if(screen==SCR_ALERT){ if(!alertBusy) screen=SCR_MENU; }
+    } else if(screen==SCR_ALERT){ if(!alertBusy) screen=have_editor?SCR_EDITOR:SCR_MENU; }
     else if(screen==SCR_GITSTATUS){ screen=SCR_MENU; }
 }
 static void app_esc(void){
@@ -876,7 +876,7 @@ static void app_esc(void){
         else if(entryCtxWifi||entryCtxWifiName){ entryCtxWifi=0; entryCtxWifiName=0; curmenu=M_WIFI; screen=SCR_MENU; }
         else { screen=SCR_MENU; }
     }
-    else if(screen==SCR_ALERT){ alertBusy=0; screen=SCR_MENU; }
+    else if(screen==SCR_ALERT){ alertBusy=0; screen=have_editor?SCR_EDITOR:SCR_MENU; }
     else if(screen==SCR_GITSTATUS){ screen=SCR_MENU; }
     else if(screen==SCR_NLIST){ browser_refill(); screen=SCR_LIST; }
     else if(screen==SCR_CONTRAST){ prefs_save(); curmenu=M_SETTINGS; screen=SCR_MENU; }
