@@ -599,7 +599,7 @@ void oyobyok_app_git_result(void){
     if(screen!=SCR_ALERT) return;
     if(s_git_status_take && s_git_status_take(&gStat)){ gRem=git_lookup(curProject); screen=SCR_GITSTATUS; return; }
     const char* m = s_git_result ? s_git_result() : 0;
-    int synced = m && (strncmp(m,"Synced",6)==0 || strstr(m,"Already in sync"));
+    int synced = m && (strncmp(m,"Synced",6)==0 || strncmp(m,"Pulled",6)==0 || strstr(m,"Already in sync"));
     if(synced) mark_synced();
     LED(synced ? BLED_SYNC_OK : BLED_SYNC_FAIL);
     alert("Git",(m&&*m)?m:"Done.");

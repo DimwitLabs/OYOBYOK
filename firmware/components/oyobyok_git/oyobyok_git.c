@@ -259,18 +259,21 @@ GitResult git_sync(const char* project){
     }
 
     // 3. Reconcile local onto the remote tip so the push is a fast-forward.
-    git_oid rtip; int has_rtip=!git_reference_name_to_id(&rtip,repo,rref);
+    git_oid rtip; int has_rtip=!git_reference_name_to_id(&rtip,repo,rref); int pulled=0;
     if(has_rtip){
         git_oid cur; if(!git_reference_name_to_id(&cur,repo,"HEAD")){
             git_oid base; int has_base=!git_merge_base(&base,repo,&cur,&rtip);
             if(git_oid_equal(&cur,&rtip)){ }
             else if(has_base && git_oid_equal(&base,&rtip)){ }             // strictly ahead
             else if(has_base && git_oid_equal(&base,&cur)){                 // strictly behind: fast-forward
+                git_checkout_options co=GIT_CHECKOUT_OPTIONS_INIT; co.checkout_strategy=GIT_CHECKOUT_SAFE|GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES; co.progress_cb=git_ckout_cb;
+                git_object* tgt=NULL; if(git_object_lookup(&tgt,repo,&rtip,GIT_OBJECT_COMMIT)){ g=fail_git("Pull failed"); goto rollback; }
+                int crc=git_checkout_tree(repo,tgt,&co); git_object_free(tgt);
+                if(crc){ g=fail_git("Pull failed"); goto rollback; }
                 git_reference* rf=NULL; if(git_reference_lookup(&rf,repo,bref)==0){ git_reference* nrf=NULL;
                     git_reference_set_target(&nrf,rf,&rtip,"ff"); if(nrf) git_reference_free(nrf); git_reference_free(rf); }
                 git_repository_set_head(repo,bref);
-                git_checkout_options co=GIT_CHECKOUT_OPTIONS_INIT; co.checkout_strategy=GIT_CHECKOUT_SAFE|GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES; co.progress_cb=git_ckout_cb;
-                git_object* tgt=NULL; if(git_object_lookup(&tgt,repo,&rtip,GIT_OBJECT_COMMIT)==0){ git_checkout_tree(repo,tgt,&co); git_object_free(tgt); }
+                pulled=1;
             } else {                                                        // diverged: rebase
                 if(do_rebase_onto(repo,&rtip,bref)){ g=fail_git("Reconcile failed"); goto rollback; }
             }
@@ -280,7 +283,7 @@ GitResult git_sync(const char* project){
     // 4. Push, unless there is nothing to send.
     {
         git_oid cur; int has_cur=!git_reference_name_to_id(&cur,repo,"HEAD");
-        if(has_cur && has_rtip && git_oid_equal(&cur,&rtip)){ g.ok=1; snprintf(g.msg,sizeof g.msg,"Already in sync"); goto done; }
+        if(has_cur && has_rtip && git_oid_equal(&cur,&rtip)){ g.ok=1; if(pulled) snprintf(g.msg,sizeof g.msg,"Pulled %s",r.branch); else snprintf(g.msg,sizeof g.msg,"Already in sync"); goto done; }
         git_remote* rem=NULL; if(git_remote_lookup(&rem,repo,"origin")){ g=fail_git("no origin"); goto done; }
         char refspec[160]; snprintf(refspec,sizeof refspec,"refs/heads/%s:refs/heads/%s",r.branch,r.branch);
         char* specs[1]={refspec}; git_strarray arr={specs,1};
