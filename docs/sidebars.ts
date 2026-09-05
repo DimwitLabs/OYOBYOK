@@ -13,7 +13,7 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Using OYOBYOK",
       collapsed: false,
-      items: ["using/writing", "using/git-sync", "using/sftp", "using/settings"],
+      items: ["using/splash", "using/writing", "using/git-sync", "using/sftp", "using/disk-mode", "using/settings", "using/led"],
     },
     {
       type: "category",

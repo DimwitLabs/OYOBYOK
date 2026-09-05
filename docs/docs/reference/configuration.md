@@ -7,7 +7,7 @@ title: Configuration
 
 Everything the device reads lives on the SD card. Nothing is typed on the device itself.
 
-## The card
+## The Card
 
 ```
 /projects/                 one folder per project, text files and sub-folders inside

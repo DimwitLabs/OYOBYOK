@@ -15,7 +15,7 @@ What the BYOK B01 is made of and how the firmware talks to it. Everything on thi
 - USB-C through a TUSB320 role controller. The ESP32-S3's built-in USB-Serial/JTAG provides the console and flashing; the same PHY is re-routed to USB-OTG for Disk Mode.
 - There is no separate Bluetooth co-processor on this board. The ESP32-S3 does the keyboard link itself.
 
-## GPIO map
+## GPIO Map
 
 :::note[Take this with a grain of salt]
 All the GPIOs are best guesses and may or may not be the correct ones on paper but for the purpose of this build, they work.
@@ -64,7 +64,7 @@ Battery percentage comes from 64 averaged ADC samples with the calibrated curve,
 
 WiFi and BLE share one radio and, more to the point, one pool of internal DMA-capable RAM. WiFi's frame buffers must live there, so the firmware keeps WiFi off until it is needed (the Synchronise page), gives the keyboard a wide connection interval and hands the coexistence arbiter to WiFi while a network operation runs, then restores a fast interval for typing. Bringing WiFi up costs about 70 KB of internal RAM.
 
-## Flash layout
+## Flash Layout
 
 | Offset | Size | What |
 | --- | --- | --- |
@@ -79,7 +79,7 @@ WiFi and BLE share one radio and, more to the point, one pool of internal DMA-ca
 
 The layout matches the stock firmware's app slots so that restoring the stock image puts everything back exactly.
 
-## Things to leave alone
+## Things to Leave Alone
 
 :::danger[Learned from experience]
 If you are extending the firmware: do not toggle GPIO19/20 (USB, the device loses its serial port until the battery is drained or it is power-cycled), do not drive GPIO42 high unless you mean to power off, and do not sweep unknown GPIOs looking for peripherals. The list above is what is known to be safe.

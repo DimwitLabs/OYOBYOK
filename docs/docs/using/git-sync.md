@@ -5,13 +5,19 @@ title: Git Sync
 
 # Git Sync
 
-Synchronise > Git lists the projects from `remotes.conf`. Pick one and you get two verbs.
+`Synchronise` > `Git` lists the projects from `remotes.conf`. Pick one and you get two verbs.
+
+![The Git menu for a project](/img/screens/git.png)
+
 
 ## Sync
 
 Sync commits whatever changed on the device (the message is `oyobyok: update from device on <date>`), fetches, rebases your commits on top of the remote, and pushes. That is the whole round trip, and it either completes or leaves the repository exactly as it found it.
 
 The screen shows an elapsed counter while it works. Esc stops waiting and lets the sync finish in the background; the LED shows the result either way, a green flash for success and a red blink for failure. Enter is ignored while it is running so a stray key cannot dismiss it early. Sync gives up after five minutes.
+
+![A sync in progress](/img/screens/git-syncing.png)
+
 
 A project that exists in `remotes.conf` but not yet under `/projects` is created and initialised on the first Sync. If the remote already has history, that first Sync pulls it down; if the remote is empty, the first Sync pushes whatever is in the folder.
 

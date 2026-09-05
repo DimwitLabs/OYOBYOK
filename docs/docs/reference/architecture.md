@@ -7,7 +7,7 @@ title: Architecture
 
 How the firmware is put together, and the reasons behind the shape of it.
 
-## One app core, two hosts
+## One App Core, Two Hosts
 
 The whole user interface lives in `firmware/shared/oyobyok_app.inc`: menus, the file manager, the editor, the settings screens, the pickers, the busy alerts, and the glue that calls out to the device. It is a plain C state machine that draws into a 240 x 80 one-bit framebuffer (`render.h`) and takes keys through a handful of functions: `app_nav`, `app_type`, `app_ctrl`, `app_esc`, `app_enter`.
 
@@ -31,11 +31,11 @@ Two programs include that file. The device host (`components/oyobyok_host`) read
 
 `main/oyobyok_main.c` brings everything up in order (power latch, NVS, SD, LCD, buttons, LED, SSH, WiFi, BLE), registers the hooks, and starts the host loop.
 
-## Keys and events
+## Keys and Events
 
 Every input is an `oyobyok_key_t`: a printable character, a navigation key (with a shift flag), or a control code. The keyboard, the buttons, and the background tasks all post into one queue. Background results are control codes above 0x80 (`OYOBYOK_CTL_*` in `oyobyok_host.h`): the WiFi task posts one when a connection succeeds or fails, the network task posts one when a sync finishes. The host loop turns each into a call on the app core, so all UI state changes on the one thread that owns it.
 
-## The radio model
+## The Radio Model
 
 WiFi exists only inside the Synchronise page. Entering the page brings it up and connects to the last known network; leaving takes it down, unless a network task is still running, in which case the task's completion handler releases it. Outside that page the BLE keyboard has the radio and the internal RAM to itself. WiFi's frame buffers must live in internal DMA-capable RAM and cost about 70 KB, which is most of what is free once NimBLE is up, so this rule is what makes the keyboard and the network coexist at all.
 
@@ -63,16 +63,16 @@ If the rebase itself fails outright (which the tests have never produced), the c
 
 The desktop engine in `sim/git_engine.c` does the same with the git binary and is what the tests exercise.
 
-## Busy alerts
+## Busy Alerts
 
 Long operations put up an alert with an elapsed counter. The host loop wakes once a second while one is showing, and the core enforces a timeout per operation (a couple of minutes for Git, longer for SFTP). Esc dismisses the alert without cancelling the work; the LED reports the result when it lands. Enter is ignored while an operation is running so a stray key cannot dismiss it early.
 
-## The keyboard link
+## The Keyboard Link
 
 The keyboard is remembered in NVS: address, address type and name. Keyboards advertise with a rotating private address, so a reconnect scans for the saved name first and opens whatever address it is using right now. The stored bond is reused; it is wiped and re-paired only after an attempt stalled in pairing, which means the two sides disagree about the key. A manual pair always starts with a clean bond, because a multi-device keyboard may have rotated its keys while talking to something else.
 
 The ESP-IDF patch in `patches/` makes NimBLE's HID host initiate encryption before it reads the report map, bound its waits for GATT callbacks, and cancel a pending connection properly on timeout.
 
-## The emulator and tests
+## The Emulator and Tests
 
 `make emu` in `sim/` builds the app core against the desktop Git engine. `make test` runs a sync test against a local bare repository (first push, a merge from a second clone, a same-line conflict carried through with markers) and a packing test for the LCD page format.

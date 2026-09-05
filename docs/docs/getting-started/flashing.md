@@ -7,7 +7,7 @@ title: Flashing
 
 This is the long version. Please read it once before you plug anything in. The device has been flashed and recovered many times while writing this firmware, and every one of the notes below was earned.
 
-## What you need
+## What You Need
 
 - A BYOK. This firmware was written against a model B01 from the early batch. Other revisions may differ in pins; see [Hardware](../reference/hardware).
 - The BYOK dock, or another USB-A host path. Plugged straight into a USB-C laptop port the BYOK negotiates as a power source (it charges the laptop) and never shows up as a serial device. Through the dock it enumerates reliably. Everything below assumes the dock.
@@ -25,7 +25,7 @@ This is the long version. Please read it once before you plug anything in. The d
   source ~/esp/esp-idf/export.sh
   ```
 
-## The one patch
+## The One Patch
 
 The BLE keyboard host uses ESP-IDF's `esp_hid` component. Its NimBLE host has two behaviours that break real keyboards: it reads the HID report map before the link is encrypted (keyboards refuse, and the read never returns), and it waits forever for GATT callbacks that a dropped link will never deliver. The patch in `firmware/patches/` fixes both. Apply it once to your ESP-IDF checkout:
 
@@ -45,7 +45,7 @@ idf.py build
 
 The first build fetches two managed components (`esp_tinyusb` for Disk Mode and `libssh2_esp` for SSH) and compiles libgit2, so it takes a few minutes. The result is `build/oyobyok.bin`, about 2 MB.
 
-## Back up the stock firmware first
+## Back Up the Stock Firmware First
 
 You want a way back. The stock image is 16 MB and reads out in about a minute:
 
@@ -61,7 +61,7 @@ esptool.py --chip esp32s3 -p /dev/cu.usbmodemXXXX write_flash 0x0 byok_stock_bac
 
 Getting the stock device to sit still for that read is the tricky part, which brings us to the next section.
 
-## Getting the stock firmware into the bootloader
+## Getting the Stock Firmware into the Bootloader
 
 On the stock firmware the USB serial port appears for a split second when you connect the device and then disappears. There is no button combination that helps. The trick is to hammer it: run a loop that watches for the port and fires `esptool` the instant it shows up, while you hold the power button down and keep holding it. Once esptool connects the chip is parked in the ROM bootloader and stays there; the loop prints the chip ID and stops.
 
@@ -83,9 +83,9 @@ cd firmware
 
 The script writes the bootloader, partition table, application and OTA data in one go. Always flash all four: writing only the app leaves the OTA data pointing at the old slot and the device boot-loops.
 
-Once OYOBYOK is on the device the serial port is stable, so from then on `flash.sh` connects on its own and you never need the hammer loop again. The console is on the same port at 115200 baud if you want to watch the boot log. With a keyboard paired, Ctrl-D from any menu reboots straight into the bootloader, which is handy while hacking.
+Once OYOBYOK is on the device the serial port is stable, so from then on `flash.sh` connects on its own and you never need the hammer loop again. The console is on the same port at 115200 baud if you want to watch the boot log. With a keyboard paired, `Ctrl` + `D` from any menu reboots straight into the bootloader, which is handy while hacking.
 
-## After flashing
+## After Flashing
 
 The device restarts into the splash screen, then the main menu. From here, [First boot](first-boot) takes over.
 

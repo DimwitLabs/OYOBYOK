@@ -95,7 +95,7 @@ static void export_png(const char*name){
     fprintf(f,"P6\n%d %d\n255\n",W*S,H*S);
     for(int y=0;y<H;y++)for(int sy=0;sy<S;sy++)for(int x=0;x<W;x++){
         int ink=fb[y*STRIDE+(x>>3)]&(0x80>>(x&7)); uint8_t p[3];
-        if(ink){p[0]=40;p[1]=34;p[2]=18;}else{p[0]=196;p[1]=186;p[2]=120;}
+        if(ink){p[0]=58;p[1]=40;p[2]=24;}else{p[0]=247;p[1]=211;p[2]=168;}   // warm amber backlight
         for(int sx=0;sx<S;sx++)fwrite(p,1,3,f); }
     fclose(f);
     char cmd[256]; snprintf(cmd,sizeof cmd,"sips -s format png %s --out %s.png >/dev/null 2>&1",ppm,name);

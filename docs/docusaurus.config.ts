@@ -95,7 +95,6 @@ const config: Config = {
         { to: "/reference/hardware", label: "Reference", position: "left" },
         { type: "search", position: "right" },
         { type: "custom-versionPill", position: "right" },
-        { href: REPO, label: "GitHub", position: "right" },
       ],
     },
     footer: {
@@ -127,7 +126,7 @@ const config: Config = {
         },
       ],
       copyright:
-        'OYOBYOK is an independent project and is not affiliated with BYOK. BYOK is a trademark of <a href="https://byok.io/" target="_blank" rel="noopener noreferrer">BYOK</a>. MIT License.',
+      'OYOBYOK is released under the MIT License. It is an independent project with no affiliation to BYOK; BYOK is a trademark of <a href="https://byok.io/" target="_blank" rel="noopener noreferrer">BYOK</a>.',
     },
     docs: { sidebar: { hideable: false, autoCollapseCategories: false } },
     tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
