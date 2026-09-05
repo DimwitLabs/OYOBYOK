@@ -26,7 +26,7 @@ Everything is native C. There is no scripting layer, no runtime, no app store. T
 ## What it does
 
 - **Projects:** Folders of plain text on the SD card. Make a project, make files and sub-folders inside it, rename and delete from the device. The editor wraps words, has a cursor you can move around with the arrow keys, Home/End, Page Up/Down, Shift-select, and copy, cut and paste.
-- **Git Sync:** One verb. Sync commits whatever changed on the device, fetches, rebases your commits on top of the remote, and pushes. Conflicts never stop the device: the file keeps both versions with the usual markers, and you tidy it up on a computer later. Any Git host that speaks SSH works.
+- **Git Sync:** One verb. Sync commits whatever changed on the device, fetches, rebases your commits on top of the remote, and pushes. Conflicts never stop the device and never ask a question: the file keeps both versions with the usual markers and goes up like that, and you tidy it up on a computer later. Any Git host that speaks SSH works.
 - **SFTP push:** Pick a server, pick a project, and it uploads that folder into a directory on your machine. Nothing on the server is ever deleted.
 - **Bluetooth keyboard:** Pair once. The device remembers it and reconnects on its own, at boot and after a drop, even as the keyboard rotates its private address.
 - **WiFi on demand:** The radio is off while you write. It comes up when you open the Synchronise page and goes away when you leave it, so the keyboard has the radio and the memory to itself the rest of the time.

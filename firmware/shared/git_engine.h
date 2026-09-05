@@ -14,7 +14,6 @@ typedef struct {
     int  ok;
     int  ahead, behind; // relative to the upstream branch
     int  changed;       // uncommitted local files
-    int  conflict;      // the branches diverged on the same lines; the user has to choose
     char msg[256];
 } GitResult;
 
@@ -26,11 +25,8 @@ GitResult  git_status_fetch(const char* project);      // fetches first, so need
 GitResult  git_ensure_repo(const char* project);       // init + origin if the folder is not a repo yet
 
 // Sync: commit local changes, fetch, rebase onto the remote tip, push. Either the whole round trip
-// succeeds or the repo is left as it was; conflict=1 only when the same lines changed on both sides.
+// succeeds or the repo is left as it was. Same-line conflicts are kept in the file with markers and
+// pushed as part of the commit, so the remote always ends up with everything the device has.
 GitResult  git_sync(const char* project);
-
-// Conflict resolution. Neither option loses data.
-GitResult  git_take_remote(const char* project);  // local work goes to a side branch, then reset to remote
-GitResult  git_keep_mine(const char* project);    // push local over remote (force-with-lease)
 
 #endif

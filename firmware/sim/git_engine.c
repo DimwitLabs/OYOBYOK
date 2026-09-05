@@ -128,18 +128,3 @@ GitResult git_status_fetch(const char* project){
     return git_status(project);
 }
 
-GitResult git_take_remote(const char* project){
-    GitResult g; memset(&g,0,sizeof g);
-    GitRemote r=git_lookup(project); char base[900]; base_cmd(base,sizeof base,project,&r);
-    char cmd[1300]; long ts=(long)time(NULL);
-    snprintf(cmd,sizeof cmd,"%s branch mine-%ld 2>/dev/null; %s reset -q --hard origin/%s 2>&1",base,ts,base,r.branch);
-    if(run(cmd)!=0){ snprintf(g.msg,sizeof g.msg,"Could not reset to remote"); return g; }
-    g.ok=1; snprintf(g.msg,sizeof g.msg,"Took remote; yours saved on mine-%ld",ts); return g;
-}
-GitResult git_keep_mine(const char* project){
-    GitResult g; memset(&g,0,sizeof g);
-    GitRemote r=git_lookup(project); char base[900]; base_cmd(base,sizeof base,project,&r);
-    char cmd[1200]; snprintf(cmd,sizeof cmd,"%s push -q --force-with-lease origin %s 2>&1",base,r.branch);
-    if(run(cmd)!=0){ snprintf(g.msg,sizeof g.msg,"Push blocked; sync again"); return g; }
-    g.ok=1; snprintf(g.msg,sizeof g.msg,"Kept yours; pushed over remote"); return g;
-}

@@ -335,35 +335,3 @@ GitResult git_status_fetch(const char* project){
     return git_status(project);
 }
 
-GitResult git_take_remote(const char* project){
-    GitRemote r=git_lookup(project); git_repository* repo=NULL;
-    char dir[320]; snprintf(dir,sizeof dir,"%s/%s",ROOT,project);
-    if(git_repository_open(&repo,dir)) return fail("open failed");
-    GitResult g=fail("Could not reset to remote"); long ts=(long)time(NULL);
-    git_oid head; git_commit* tip=NULL; git_reference* mine=NULL; char mn[64]; snprintf(mn,sizeof mn,"mine-%ld",ts);
-    if(!git_reference_name_to_id(&head,repo,"HEAD") && git_commit_lookup(&tip,repo,&head)==0){
-        git_branch_create(&mine,repo,mn,tip,0); if(mine) git_reference_free(mine); git_commit_free(tip);
-    }
-    char ref[128]; snprintf(ref,sizeof ref,"refs/remotes/origin/%s",r.branch);
-    git_object* target=NULL;
-    if(git_revparse_single(&target,repo,ref)==0){
-        git_reset(repo,target,GIT_RESET_HARD,NULL); git_object_free(target);
-        g.ok=1; snprintf(g.msg,sizeof g.msg,"Took remote; yours saved on %s",mn);
-    }
-    git_repository_free(repo); return g;
-}
-GitResult git_keep_mine(const char* project){
-    GitRemote r=git_lookup(project); git_repository* repo=NULL;
-    char dir[320]; snprintf(dir,sizeof dir,"%s/%s",ROOT,project);
-    if(git_repository_open(&repo,dir)) return fail("open failed");
-    GitResult g=fail("Push blocked; sync again"); Cred cred; keypaths(&r,&cred);
-    git_remote* rem=NULL;
-    if(git_remote_lookup(&rem,repo,"origin")==0){
-        char refspec[160]; snprintf(refspec,sizeof refspec,"+refs/heads/%s:refs/heads/%s",r.branch,r.branch);
-        char* specs[1]={refspec}; git_strarray arr={specs,1};
-        git_push_options po=GIT_PUSH_OPTIONS_INIT; po.callbacks.credentials=cred_cb; po.callbacks.payload=&cred; po.callbacks.push_transfer_progress=git_pushxfer_cb; po.callbacks.certificate_check=cert_check_cb;
-        if(git_remote_push(rem,&arr,&po)==0){ g.ok=1; snprintf(g.msg,sizeof g.msg,"Kept yours; pushed over remote"); }
-        git_remote_free(rem);
-    }
-    git_repository_free(repo); return g;
-}

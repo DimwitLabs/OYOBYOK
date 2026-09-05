@@ -21,11 +21,13 @@ Status fetches and shows how many commits you are ahead and behind, and how many
 
 ## Conflicts
 
-If the same lines changed on both sides, the file on the device ends up with both versions between `<<<<<<<` and `>>>>>>>` markers, committed and pushed like that. Nothing is lost; open it on a computer, keep the half you want, commit. Files that changed on only one side merge cleanly, as does the same file edited in different places.
+If the same lines changed on both sides, the file on the device ends up with both versions between `<<<<<<<` and `>>>>>>>` markers, committed and pushed like that. Nothing is lost and nothing is asked of you on the device; open the file on a computer, keep the half you want, commit. Files that changed on only one side merge cleanly, as does the same file edited in different places.
 
-:::note[Sensible defaults]
-This way of handling conflicts may not seem natural if you are a programmer but for prose this is a sensible default and a good middle-ground. The idea is that a person will be able to edit it on a larger device later and know that only one, self-contained commit tagged `oyobyok` will have these.
+:::tip
+This is deliberate: edit on a bigger machine whenever you like, and a quick writing session on the device still sends everything you wrote up with one Sync.
 :::
+
+There is no conflict screen. Sync's only job is to leave the remote holding everything the device has, and the markers are how it does that when the two sides disagree.
 
 ## Commits
 

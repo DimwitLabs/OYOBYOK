@@ -59,6 +59,8 @@ libgit2 is vendored with two changes: its default file I/O buffer is 4 KB instea
 4. Compare to the remote tip. Equal: nothing to do. Strictly ahead: push. Strictly behind: fast-forward and check out. Diverged: rebase local commits onto the remote tip. A conflicting file is kept exactly as checked out, markers included, and staged as the resolution, so the device never stops on a conflict.
 5. Push. If fetch or rebase failed, the commit from step 2 is rolled back first.
 
+If the rebase itself fails outright (which the tests have never produced), the commit from step 2 stays, Sync reports the failure, and the next Sync tries again from there.
+
 The desktop engine in `sim/git_engine.c` does the same with the git binary and is what the tests exercise.
 
 ## Busy alerts

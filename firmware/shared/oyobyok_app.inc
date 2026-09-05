@@ -83,8 +83,8 @@ static char alertTitle[64], alertMsg[256];
 static char listItems[32][48]; static int listN=0, listSel=0, listType=0;
 enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8 };
 static int  listKind[32];
-enum { NL_CONFLICT, NL_MANAGE, NL_DELCONFIRM };
-static int  nMode=NL_CONFLICT, nN=0, nSel=0;
+enum { NL_MANAGE, NL_DELCONFIRM };
+static int  nMode=NL_MANAGE, nN=0, nSel=0;
 static char nItems[20][48];
 static int  s_bt_pending=0, s_bt_ndev=0;
 static int  entryCtxFS=0;        // naming a new object: 1 file, 2 folder, 3 project
@@ -420,12 +420,6 @@ static void render_current(void){
     if(status_on) draw_status_overlay();
 }
 
-static void open_conflict(void){
-    nN=0; snprintf(nItems[nN++],48,"Take remote (save mine)");
-    snprintf(nItems[nN++],48,"Keep mine (push over)");
-    nMode=NL_CONFLICT; nSel=0; screen=SCR_NLIST;
-}
-
 // ---- file manager -------------------------------------------------------------------------------
 // A project is a top-level folder under appReposRoot; it may contain files and sub-folders.
 static void browser_refill(void){
@@ -502,7 +496,6 @@ static void git_action(int ev){
             screen=SCR_ALERT; BUSY(300); s_sync_busy=1; s_git_sync(curProject); return;
         }
         GitResult g=git_sync(curProject);            // emulator: synchronous
-        if(g.conflict){ LED(BLED_SYNC_FAIL); open_conflict(); return; }
         LED(g.ok?BLED_SYNC_OK:BLED_SYNC_FAIL);
         if(g.ok) mark_synced();
         alert("Git",g.msg);
@@ -609,7 +602,6 @@ void oyobyok_app_git_result(void){
     int synced = m && (strncmp(m,"Synced",6)==0 || strstr(m,"Already in sync"));
     if(synced) mark_synced();
     LED(synced ? BLED_SYNC_OK : BLED_SYNC_FAIL);
-    if(m && (strstr(m,"pull first")||strstr(m,"same lines"))){ open_conflict(); return; }
     alert("Git",(m&&*m)?m:"Done.");
 }
 
@@ -855,12 +847,8 @@ static void app_enter(void){
                          snprintf(nItems[nN++],48,"Cancel"); nMode=NL_DELCONFIRM; nSel=1; return; }
             browser_refill(); screen=SCR_LIST; return;
         }
-        if(nMode==NL_DELCONFIRM){
-            if(nSel==0){ char p[600]; snprintf(p,sizeof p,"%s/%.63s",cur_dir(),mgTarget); if(mgIsDir) rm_rf(p); else unlink(p); }
-            browser_refill(); screen=SCR_LIST; return;
-        }
-        GitResult g=(nSel==0)?git_take_remote(curProject):git_keep_mine(curProject);
-        alert("Git",g.msg);
+        if(nSel==0){ char p[600]; snprintf(p,sizeof p,"%s/%.63s",cur_dir(),mgTarget); if(mgIsDir) rm_rf(p); else unlink(p); }
+        browser_refill(); screen=SCR_LIST;
     } else if(screen==SCR_ALERT){ if(!alertBusy) screen=SCR_MENU; }
     else if(screen==SCR_GITSTATUS){ screen=SCR_MENU; }
 }
@@ -890,7 +878,7 @@ static void app_esc(void){
     }
     else if(screen==SCR_ALERT){ alertBusy=0; screen=SCR_MENU; }
     else if(screen==SCR_GITSTATUS){ screen=SCR_MENU; }
-    else if(screen==SCR_NLIST){ if(nMode==NL_CONFLICT){ curmenu=M_GIT; screen=SCR_MENU; } else { browser_refill(); screen=SCR_LIST; } }
+    else if(screen==SCR_NLIST){ browser_refill(); screen=SCR_LIST; }
     else if(screen==SCR_CONTRAST){ prefs_save(); curmenu=M_SETTINGS; screen=SCR_MENU; }
     else if(screen==SCR_BTSCAN){ curmenu=M_BT; screen=SCR_MENU; }
     else if(screen==SCR_MENU){ menu_back(); }
