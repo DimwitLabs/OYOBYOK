@@ -1,0 +1,7 @@
+dependencies:
+  idf: ">=5.3"
+  # USB mass storage for Disk Mode. Pinned to the 1.x line for the SDMMC MSC API.
+  espressif/esp_tinyusb: "~1.7"
+  # libssh2 1.11 with the mbedTLS backend. Used for SFTP and as libgit2's SSH transport.
+  # RSA and ECDSA keys only; ed25519 is not supported by this backend.
+  skuodi/libssh2_esp: "^1.1.0"
