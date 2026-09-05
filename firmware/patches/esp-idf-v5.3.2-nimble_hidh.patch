@@ -1,0 +1,212 @@
+diff --git a/components/esp_hid/src/nimble_hidh.c b/components/esp_hid/src/nimble_hidh.c
+index 134baca8895..0fab6b1ec5b 100644
+--- a/components/esp_hid/src/nimble_hidh.c
++++ b/components/esp_hid/src/nimble_hidh.c
+@@ -45,10 +45,18 @@ static int services_discovered;
+ static int chrs_discovered;
+ static int dscs_discovered;
+ static int status = 0;
++static int s_read_status;   // OYOBYOK: tentative decl so WAIT_CB can fail a pending read (defined below)
+ 
+ static inline void WAIT_CB(void)
+ {
+-    xSemaphoreTake(s_ble_hidh_cb_semaphore, portMAX_DELAY);
++    // OYOBYOK: bounded. A GATT procedure whose callback never fires (link dropped mid-procedure, or a
++    // read refused pre-encryption) used to park the open task here forever, leaving the connection
++    // half-open with neither OPEN nor CLOSE ever delivered. Time out and fail the procedure instead.
++    if (xSemaphoreTake(s_ble_hidh_cb_semaphore, pdMS_TO_TICKS(8000)) != pdTRUE) {
++        ESP_LOGE(TAG, "GATT procedure timed out");
++        status = BLE_HS_ETIMEOUT;
++        s_read_status = BLE_HS_ETIMEOUT;
++    }
+ }
+ 
+ static inline void SEND_CB(void)
+@@ -115,6 +123,12 @@ nimble_on_read(uint16_t conn_handle,
+         s_read_status = 0;
+         SEND_CB();
+         return 0;
++    default:
++        // OYOBYOK: any terminal ERROR (e.g. 261 = ATT insufficient authentication on a characteristic
++        // the keyboard gates on MITM pairing) must release the waiting open task immediately.
++        // Upstream only released on EDONE, so an error meant an 8 s timeout (formerly: forever).
++        SEND_CB();
++        return 0;
+     }
+     return 0;
+ }
+@@ -306,15 +320,39 @@ static void read_device_services(esp_hidh_dev_t *dev)
+     uint8_t hidindex = 0;
+     int rc;
+ 
+-    rc = ble_gattc_disc_all_svcs(dev->ble.conn_id, svc_disced, service_result);
++    // OYOBYOK: discovery was seen failing with rc=7 == BLE_HS_ENOTCONN — the BLE link dies right after
++    // "Connection established" (GAP reason 0x3e, connection-establishment failure) before we can read
++    // services, so the HID report map is never built and the keyboard "connects" with zero keys. Two
++    // guards: (1) a brief window just after establishment where the conn handle isn't ready yet is
++    // transient — retry a few times (we run on the open task, not the NimBLE host task, so the link can
++    // settle while we back off). (2) If it's a genuine dropped link (ENOTCONN persists / EBUSY), bail
++    // gracefully instead of panicking. Root stability of the link under WiFi coex is fixed separately.
++    // OYOBYOK: do not touch the HID service until the link is ENCRYPTED. The keyboard's report map /
++    // report characteristics are auth-gated: reading them early fails with ATT insufficient
++    // authentication (status 261) and the open then stalls or yields a keyboard with zero keys.
++    // The host (byok_blehid) initiates security right after connect; wait for it here (<= 8 s).
++    for (int w = 0; w < 80; w++) {
++        struct ble_gap_conn_desc desc;
++        if (ble_gap_conn_find(dev->ble.conn_id, &desc) != 0) break;   // link gone; discovery will fail below
++        if (desc.sec_state.encrypted) break;
++        vTaskDelay(pdMS_TO_TICKS(100));
++    }
++    status = 0;
++    for (int attempt = 0; attempt < 20; attempt++) {
++        rc = ble_gattc_disc_all_svcs(dev->ble.conn_id, svc_disced, service_result);
++        if (rc != BLE_HS_ENOTCONN && rc != BLE_HS_EBUSY) break;
++        vTaskDelay(pdMS_TO_TICKS(100));
++    }
+     if (rc != 0) {
+-        ESP_LOGD(TAG, "Error discovering services : %d", rc);
+-        assert(rc != 0);
++        ESP_LOGE(TAG, "Error discovering services : %d", rc);
++        return;
+     }
+     WAIT_CB();
+     if (status != 0) {
+-        ESP_LOGE(TAG, "failed to find services");
+-        assert(status == 0);
++        // OYOBYOK: same — a failed/aborted service discovery on a flaky reconnect must not reboot the
++        // device (was assert(status==0) -> panic). Fail the open cleanly and let the app retry.
++        ESP_LOGE(TAG, "failed to find services (status=%d)", status);
++        return;
+     }
+     dcount = services_discovered; /* fatal if services are more than 10 */
+ 
+@@ -352,8 +390,9 @@ static void read_device_services(esp_hidh_dev_t *dev)
+                                          service_result[s].end_handle, chr_disced, char_result);
+             WAIT_CB();
+             if (status != 0) {
+-                ESP_LOGE(TAG, "failed to find chars for service : %d", s);
+-                assert(status == 0);
++                // OYOBYOK: link dropped mid-discovery -> fail the open, don't panic the device.
++                ESP_LOGE(TAG, "failed to find chars for service : %d (status=%d)", s, status);
++                return;
+             }
+             ccount = chrs_discovered;
+             if (rc == ESP_OK) {
+@@ -466,8 +505,9 @@ static void read_device_services(esp_hidh_dev_t *dev)
+                                                  chr_end_handle, desc_disced, descr_result);
+                     WAIT_CB();
+                     if (status != 0) {
+-                        ESP_LOGE(TAG, "failed to find discriptors for characteristic : %d", c);
+-                        assert(status == 0);
++                        // OYOBYOK: link dropped mid-discovery -> fail the open, don't panic the device.
++                        ESP_LOGE(TAG, "failed to find descriptors for characteristic : %d (status=%d)", c, status);
++                        return;
+                     }
+                     dcount = dscs_discovered;
+                     if (rc == ESP_OK) {
+@@ -651,8 +691,15 @@ esp_hidh_gattc_event_handler(struct ble_gap_event *event, void *arg)
+             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+             assert(rc == 0);
+             dev = esp_hidh_dev_get_by_bda(desc.peer_ota_addr.val);
++            // OYOBYOK: when reconnecting to a bonded IDENTITY address, the over-the-air address
++            // (peer_ota_addr) is the keyboard's resolved RPA and won't match the identity we opened
++            // with, so get_by_bda misses. Fall back to the pending device passed as `arg`. If we still
++            // have no device, release the waiter and bail instead of dereferencing NULL.
++            if (!dev) dev = (esp_hidh_dev_t *)arg;
+             if (!dev) {
+                 ESP_LOGE(TAG, "Connect received for unknown device");
++                SEND_CB();
++                return 0;
+             }
+             dev->status = -1; // set to not found and clear if HID service is found
+             dev->ble.conn_id = event->connect.conn_handle;
+@@ -670,9 +717,15 @@ esp_hidh_gattc_event_handler(struct ble_gap_event *event, void *arg)
+         } else {
+             MODLOG_DFLT(ERROR, "Error: Connection failed; status=%d\n",
+                         event->connect.status);
+-            dev->status = event->connect.status; // ESP_GATT_CONN_FAIL_ESTABLISH;
+-            dev->ble.conn_id = -1;
+-            SEND_CB(); // return from connection
++            // OYOBYOK: `dev` is NULL here (only assigned in the success branch above) — dereferencing it
++            // panicked on every failed/cancelled connect. The open path passes the pending device as
++            // `arg`, so use that; guard in case it isn't available, and always release the waiter.
++            dev = (esp_hidh_dev_t *)arg;
++            if (dev) {
++                dev->status = event->connect.status; // ESP_GATT_CONN_FAIL_ESTABLISH;
++                dev->ble.conn_id = -1;
++            }
++            SEND_CB(); // return from connection (unblocks esp_ble_hidh_dev_open)
+         }
+         return 0;
+ 
+@@ -931,7 +984,17 @@ esp_hidh_dev_t *esp_ble_hidh_dev_open(uint8_t *bda, uint8_t address_type)
+     memcpy(addr.val, bda, sizeof(addr.val));
+     addr.type = address_type;
+ 
+-    ret = ble_gap_connect(own_addr_type, &addr, 30000, NULL, esp_hidh_gattc_event_handler, NULL);
++    // OYOBYOK: pass the pending device as the GAP callback arg. On a FAILED/cancelled connect the handler
++    // has no conn_handle to look the device up by, and it used to deref a NULL `dev` (StoreProhibited
++    // @0x44) — which any cancelled connect triggers (common under WiFi coex / boot autoreconnect).
++    // OYOBYOK: a fresh dev is zeroed, so conn_id==0 looked like a valid handle; and a callback that fired
++    // AFTER a previous open gave up (late connect-failure, late discovery error) left a stale token in
++    // the semaphore, so the next open's WAIT_CB returned instantly and discovery ran on a link that was
++    // neither established nor encrypted (-> "malloc report maps failed", pairing never completed).
++    dev->ble.conn_id = -1;
++    while (xSemaphoreTake(s_ble_hidh_cb_semaphore, 0) == pdTRUE) { }
++    status = 0;
++    ret = ble_gap_connect(own_addr_type, &addr, 30000, NULL, esp_hidh_gattc_event_handler, dev);
+     if (ret) {
+         esp_hidh_dev_free_inner(dev);
+         ESP_LOGE(TAG, "esp_ble_gattc_open failed: %d", ret);
+@@ -939,12 +1002,24 @@ esp_hidh_dev_t *esp_ble_hidh_dev_open(uint8_t *bda, uint8_t address_type)
+     }
+     WAIT_CB();
+     if (dev->ble.conn_id < 0) {
++        if (status == BLE_HS_ETIMEOUT) {
++            // OYOBYOK: no connect event within the wait: cancel the pending connect and wait for its failure
++            // event (which writes into `dev`) BEFORE freeing dev — it used to land on freed memory later.
++            ble_gap_conn_cancel();
++            xSemaphoreTake(s_ble_hidh_cb_semaphore, pdMS_TO_TICKS(3000));
++        }
+         ret = dev->status;
+         ESP_LOGE(TAG, "dev open failed! status: 0x%x", dev->status);
+         esp_hidh_dev_free_inner(dev);
+         return NULL;
+     }
+ 
++    // OYOBYOK: mark the link as up. Upstream NEVER sets dev->connected=true, so the DISCONNECT handler
++    // always takes its "!connected" branch and NEVER posts ESP_HIDH_CLOSE_EVENT — meaning a keyboard
++    // power-off (disconnect reason=520) is silently swallowed and the host never learns of the drop
++    // (so it can't auto-reconnect). Setting it here makes CLOSE fire on every subsequent disconnect.
++    dev->connected = true;
++
+     dev->close = esp_ble_hidh_dev_close;
+     dev->report_write = esp_ble_hidh_dev_report_write;
+     dev->report_read = esp_ble_hidh_dev_report_read;
+@@ -953,6 +1028,26 @@ esp_hidh_dev_t *esp_ble_hidh_dev_open(uint8_t *bda, uint8_t address_type)
+     /* perform service discovery and fill the report maps */
+     read_device_services(dev);
+ 
++    // OYOBYOK: a "connected" keyboard with no report map is useless (zero keys ever arrive). If discovery
++    // bailed (link dropped, read refused, timeout), fail the open properly: report it and tear the
++    // link down so the DISCONNECT path posts CLOSE and the host's reconnect loop gets another go —
++    // instead of leaving a dangling encrypted link nobody owns.
++    bool have_map = dev->config.report_maps_len > 0 && dev->config.report_maps != NULL;
++    for (size_t i = 0; have_map && i < dev->config.report_maps_len; i++) {
++        if (dev->config.report_maps[i].data == NULL || dev->config.report_maps[i].len == 0) have_map = false;
++    }
++    if (!have_map) {
++        ESP_LOGE(TAG, "HID discovery incomplete (maps=%u) — closing link", (unsigned)dev->config.report_maps_len);
++        if (event_loop_handle) {
++            esp_hidh_event_data_t p = {0};
++            p.open.status = ESP_FAIL;
++            p.open.dev = dev;
++            esp_event_post_to(event_loop_handle, ESP_HIDH_EVENTS, ESP_HIDH_OPEN_EVENT, &p, sizeof(esp_hidh_event_data_t), portMAX_DELAY);
++        }
++        ble_gap_terminate(dev->ble.conn_id, BLE_ERR_REM_USER_CONN_TERM);
++        return NULL;
++    }
++
+     if (event_loop_handle) {
+         esp_hidh_event_data_t p = {0};
+         p.open.status = ESP_OK;
