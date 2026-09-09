@@ -1,7 +1,3 @@
-/* OYOBYOK docs: Backlight, pixel chrome.
-   The reading column is a warm off-white with a screen serif; the chrome around it speaks the
-   device's language in the pixel face; the full amber of the backlight appears only in the
-   screenshots and the version pill. Dark mode is the backlight off. */
 @import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
@@ -36,7 +32,6 @@
   --ifm-h3-font-size: 0.75rem;
   --ifm-h4-font-size: 0.7rem;
 
-  /* Infima's neutral greys, retinted to the page. Every grey border, hover wash and placeholder comes from here. */
   --ifm-color-gray-100: #f6ede0;
   --ifm-color-gray-200: #eadbc4;
   --ifm-color-gray-300: #dcc8a9;
@@ -141,7 +136,6 @@
 html { background: var(--bl-bg); }
 body { background: var(--bl-bg); color: var(--bl-ink); }
 
-/* ---- reading column ---- */
 .markdown { max-width: 68ch; }
 .markdown p, .markdown li { line-height: 1.65; }
 .markdown h1 { letter-spacing: 0.02em; margin-bottom: 1.2rem; text-wrap: balance; }
@@ -167,6 +161,7 @@ body { background: var(--bl-bg); color: var(--bl-ink); }
   color: var(--bl-ink);
   padding: 0 0.4em;
 }
+
 .markdown table { display: table; width: 100%; font-size: 0.95rem; }
 .markdown th {
   font-family: var(--pixel);
@@ -178,18 +173,21 @@ body { background: var(--bl-bg); color: var(--bl-ink); }
   text-align: left;
   border-bottom: 1px solid var(--bl-line);
 }
+
 .markdown td { border-color: var(--bl-line); vertical-align: top; }
+
 .markdown tr:nth-child(2n) { background: transparent; }
+
 blockquote {
   border-left: 3px solid var(--bl-line);
   color: var(--bl-soft);
   font-style: italic;
 }
+
 .theme-code-block { box-shadow: none; }
 .theme-code-block, .prism-code { border-radius: 6px; }
 .markdown pre { font-size: 0.85rem; }
 
-/* Admonitions: one rail, a faint wash, a pixel label. */
 .theme-admonition {
   background: var(--bl-tip-bg);
   border: 0;
@@ -205,11 +203,11 @@ blockquote {
   text-transform: uppercase;
   color: var(--bl-acc);
 }
+
 .theme-admonition [class*="admonitionIcon"] { display: none; }
 .alert--warning, .alert--danger { border-left-color: #b8412a; }
 .alert--warning [class*="admonitionHeading"], .alert--danger [class*="admonitionHeading"] { color: #b8412a; }
 
-/* Emulator screenshots: the one place the backlight shows at full strength. */
 .markdown img[src*="/img/screens/"] {
   image-rendering: pixelated;
   border-radius: 6px;
@@ -219,7 +217,6 @@ blockquote {
   width: 100%;
 }
 
-/* ---- chrome: pixel ---- */
 .navbar { border-bottom: 1px solid var(--bl-line); }
 .navbar__title { font-family: var(--pixel); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.04em; }
 .navbar__logo { height: 22px; margin-right: 0.6rem; }
@@ -234,6 +231,7 @@ blockquote {
   border-bottom: 2px solid transparent;
   color: var(--bl-ink);
 }
+
 .navbar__link:hover { color: var(--bl-acc); }
 .navbar__link--active { color: var(--bl-ink); border-bottom-color: var(--bl-ink); }
 .navbar__items--right .navbar__link { margin-right: 0; }
@@ -252,6 +250,7 @@ blockquote {
   color: var(--bl-ink);
   padding-left: 1.9rem;
 }
+
 .navbar__search input::placeholder { color: var(--bl-ink); opacity: 0.85; }
 
 .version-pill {
@@ -265,9 +264,9 @@ blockquote {
   color: var(--bl-on-acc);
   border-radius: 3px;
 }
+
 .version-pill:hover { color: var(--bl-on-acc); text-decoration: none; background: var(--ifm-color-primary-dark); }
 
-/* Sidebar drawn like the device menu: group labels in the pixel face, a pointer on the active row. */
 .theme-doc-sidebar-container { border-right: 1px solid var(--bl-line) !important; background: var(--bl-side); }
 .menu { padding: 1.2rem 0.9rem; font-size: 0.92rem; }
 .menu__list-item-collapsible > .menu__link,
@@ -296,9 +295,9 @@ blockquote {
   -webkit-mask: var(--px-chevron-right) center / contain no-repeat;
   mask: var(--px-chevron-right) center / contain no-repeat;
 }
+
 .menu__list .menu__list { padding-left: 0; border-left: 0; margin-left: 0; }
 
-/* Breadcrumb as a device path. */
 .breadcrumbs { margin-bottom: 1.4rem; }
 .breadcrumbs__item { display: inline-flex; align-items: center; }
 .breadcrumbs__link {
@@ -311,7 +310,9 @@ blockquote {
   background: transparent;
   padding: 0;
 }
+
 .breadcrumbs__item--active .breadcrumbs__link { color: var(--bl-ink); background: transparent; }
+
 .breadcrumbs__item:not(:last-child)::after {
   content: "";
   display: inline-block;
@@ -330,9 +331,9 @@ blockquote {
   margin: 0 0.6rem;
   opacity: 1;
 }
+
 .breadcrumbs__item:first-child .breadcrumbs__link svg { width: 0.9rem; height: 0.9rem; vertical-align: -2px; }
 
-/* Table of contents and pagination. */
 .table-of-contents { font-size: 0.82rem; }
 .table-of-contents__link { color: var(--bl-soft); }
 .table-of-contents__link--active, .table-of-contents__link:hover { color: var(--bl-acc); }
@@ -345,11 +346,19 @@ blockquote {
   text-transform: uppercase;
   color: var(--bl-soft);
 }
+
 .pagination-nav__label { font-family: var(--serif); font-weight: 600; }
 .theme-doc-footer, .theme-last-updated { color: var(--bl-soft); font-size: 0.85rem; }
 
-/* Footer. */
 .footer { border-top: 1px solid var(--bl-line); }
+
+.footer .container { max-width: 1120px; padding-left: 1.5rem; padding-right: 1.5rem; }
+@media (min-width: 997px) {
+  .footer__links.row { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; }
+  .footer__links .footer__col { width: auto; max-width: none; padding: 0; }
+  .footer__links .footer__col:nth-child(2) { text-align: center; }
+  .footer__links .footer__col:nth-child(3) { text-align: right; }
+}
 .footer__title {
   font-family: var(--pixel);
   font-size: 0.72rem;
@@ -360,7 +369,6 @@ blockquote {
 .footer__copyright { font-size: 0.85rem; color: var(--bl-soft); margin-top: 1.5rem; }
 .footer__copyright a { color: var(--bl-acc); }
 
-/* Pixel icons (Pixelarticons, MIT) for everything Infima draws with CSS. */
 :root {
   --px-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M8 5v2h2V5H8zm4 4V7h-2v2h2zm2 2V9h-2v2h2zm0 2h2v-2h-2v2zm-2 2v-2h2v2h-2zm0 0h-2v2h2v-2zm-4 4v-2h2v2H8z"/></svg>');
   --px-chevron-down: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 8H5v2h2v2h2v2h2v2h2v-2h2v-2h2v-2h2V8h-2v2h-2v2h-2v2h-2v-2H9v-2H7V8z"/></svg>');
@@ -368,7 +376,7 @@ blockquote {
   --px-arrow-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M4 11v2h12v2h2v-2h2v-2h-2V9h-2v2H4zm10-4h2v2h-2V7zm0 0h-2V5h2v2zm0 10h2v-2h-2v2zm0 0h-2v2h2v-2z"/></svg>');
   --px-search: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M6 2h8v2H6V2zM4 6V4h2v2H4zm0 8H2V6h2v8zm2 2H4v-2h2v2zm8 0v2H6v-2h8zm2-2h-2v2h2v2h2v2h2v2h2v-2h-2v-2h-2v-2h-2v-2zm0-8h2v8h-2V6zm0 0V4h-2v2h2z"/></svg>');
 }
-/* Search glass: hide the plugin's own icon, draw a pixel one in its place. */
+
 .navbar [class*="searchIcon"] { display: none; }
 .navbar__search { position: relative; }
 .navbar__search::before {
@@ -385,14 +393,14 @@ blockquote {
   pointer-events: none;
   z-index: 1;
 }
-/* Mobile "On this page" chevron. */
+
 [class*="tocCollapsibleButton"]::after {
   background: var(--bl-ink) !important;
   -webkit-mask: var(--px-chevron-down) center / contain no-repeat;
   mask: var(--px-chevron-down) center / contain no-repeat;
   filter: none !important;
 }
-/* Pagination arrows. */
+
 .pagination-nav__link--prev .pagination-nav__label::before,
 .pagination-nav__link--next .pagination-nav__label::after {
   content: "";
@@ -411,21 +419,18 @@ blockquote {
   margin-right: 0;
   margin-left: 0.35rem;
 }
-/* Swizzled SVG icons: keep them crisp and on the ink colour. */
+
 .pixel-icon-edit { vertical-align: -0.2rem; margin-right: 0.3rem; }
 .pixel-icon-external { margin-left: 0.3rem; vertical-align: -0.1rem; }
 .navbar__toggle svg, .navbar-sidebar__close svg { color: var(--bl-ink); }
 [class*="toggleButton"] svg { color: var(--bl-ink); }
 [class*="collapseSidebarButton"] svg, [class*="expandButton"] svg { color: var(--bl-ink); }
 
-/* Search modal. */
 .search-result-match { color: var(--bl-acc); }
 
-/* Focus and motion. */
 a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--bl-acc); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* Search hint keys, in the device's own face. */
 .navbar [class*="searchHintContainer"] { gap: 0.2rem; }
 .navbar [class*="searchHint"] {
   font-family: var(--pixel);
@@ -440,7 +445,6 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
   padding: 0 0.15rem;
 }
 
-/* Hamburger. */
 .navbar__toggle { color: var(--bl-ink); }
 .navbar__toggle:hover { color: var(--bl-acc); }
 .navbar-sidebar__brand { border-bottom: 1px solid var(--bl-line); background: var(--bl-nav); }
@@ -454,7 +458,6 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
   color: var(--bl-soft);
 }
 
-/* Mobile "On this page": a well. */
 .theme-doc-toc-mobile {
   background: var(--bl-side);
   border: 1px solid var(--bl-line);
@@ -470,14 +473,15 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
   color: var(--bl-soft);
   padding: 0.7rem 0.9rem;
 }
+
 .theme-doc-toc-mobile > button::after { filter: none; opacity: 0.6; }
 .theme-doc-toc-mobile > div { border-top: 1px solid var(--bl-line); padding: 0.5rem 0.9rem 0.6rem; }
 .theme-doc-toc-mobile .table-of-contents { padding-left: 0; }
 
 .theme-doc-toc-mobile [class*="tocCollapsibleContent"] > ul { border-top: 0; }
-/* Version pill breathes before the theme switch. */
+
 .version-pill { margin-right: 1rem; }
-/* Narrow screens: the search button gets room and the pill steps aside. */
+
 @media (max-width: 996px) {
   .navbar__items--right { gap: 0.5rem; }
   .version-pill { display: none; }

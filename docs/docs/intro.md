@@ -16,7 +16,7 @@ OYOBYOK is Own Your Own Bring Your Own Keyboard (yes, I know it is a mouthful). 
 :::
 
 :::warning[One device]
-This firmware has been built and tested on exactly one BYOK, a model B01 from the early batch. Flashing replaces the stock firmware. Read [Flashing](getting-started/flashing) all the way through before you do anything, and back up the stock image first so you can always go back.
+This firmware has been built and tested on exactly one BYOK, a model B01 from the early batch. Flashing replaces the stock firmware. Read [Flashing](./getting-started/flashing.md) all the way through before you do anything, and back up the stock image first so you can always go back.
 :::
 
 ## Why
@@ -36,12 +36,12 @@ Everything is native C. There is no scripting layer, no runtime, no app store. T
 - **Bluetooth keyboard:** Pair once. The device remembers it and reconnects on its own, at boot and after a drop, even as the keyboard rotates its private address. Bluetooth only for now: the stock firmware also takes USB keyboards, and OYOBYOK does not yet.
 - **WiFi on demand:** The radio is off while you write. It comes up when you open the Synchronise page and goes away when you leave it, so the keyboard has the radio and the memory to itself the rest of the time.
 - **Disk Mode:** The SD card becomes a USB drive on your computer. This is how you drop in keys and config, and how you get files off without any network at all.
-- **Status LED:** Charging, charged, low battery, syncing, saved, keyboard connected. The single RGB LED on the side tells you what the device is up to; [Status LED](using/led) decodes it.
+- **Status LED:** Charging, charged, low battery, syncing, saved, keyboard connected. The single RGB LED on the side tells you what the device is up to; [Status LED](./using/led.md) decodes it.
 - **Settings:** Contrast, keyboard layout (QWERTY, QWERTZ, AZERTY, Dvorak), cursor style, backlight brightness. Preferences live on the SD card.
 
 ## Where to Go Next
 
-1. [Flashing](getting-started/flashing): the toolchain, the one ESP-IDF patch, backing up the stock firmware, the trick for getting the stock device into the bootloader, and recovery.
-2. [First boot](getting-started/first-boot): the SD card, keys, WiFi, and pairing your keyboard.
-3. [Splash](using/splash), [Writing](using/writing), [Git Sync](using/git-sync), [SFTP](using/sftp), [Disk Mode](using/disk-mode), [Settings](using/settings) and [Status LED](using/led) for day-to-day use.
-4. [Configuration](reference/configuration), [Hardware](reference/hardware) and [Architecture](reference/architecture) when you want to know exactly what is going on.
+1. [Flashing](./getting-started/flashing.md): the toolchain, the one ESP-IDF patch, backing up the stock firmware, the trick for getting the stock device into the bootloader, and recovery.
+2. [First boot](./getting-started/first-boot.md): the SD card, keys, WiFi, and pairing your keyboard.
+3. [Splash](./using/splash.md), [Writing](./using/writing.md), [Git Sync](./using/git-sync.md), [SFTP](./using/sftp.md), [Disk Mode](./using/disk-mode.md), [Settings](./using/settings.md) and [Status LED](./using/led.md) for day-to-day use.
+4. [Configuration](./reference/configuration.md), [Hardware](./reference/hardware.md) and [Architecture](./reference/architecture.md) when you want to know exactly what is going on.

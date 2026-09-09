@@ -56,12 +56,12 @@ const config: Config = {
       "classic",
       {
         docs: {
-          routeBasePath: "/",
+          routeBasePath: "/docs",
           sidebarPath: "./sidebars.ts",
           editUrl: `${REPO}/tree/main/docs/`,
         },
         blog: false,
-        pages: false,
+        pages: {},
         theme: { customCss: ["./src/css/custom.css"] },
         sitemap: { lastmod: "date", changefreq: "weekly" },
       } satisfies Preset.Options,
@@ -83,6 +83,7 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: "img/og.png",
     metadata: [
       { name: "description", content: "Documentation for OYOBYOK, an alternative firmware for the BYOK writing device." },
     ],
@@ -91,9 +92,9 @@ const config: Config = {
       title: "OYOBYOK",
       logo: { alt: "OYOBYOK", src: "img/oyobyok.svg", href: "/", height: 28 },
       items: [
-        { to: "/", label: "Docs", position: "left", activeBaseRegex: "^/$" },
-        { to: "/getting-started/flashing", label: "Flashing", position: "left" },
-        { to: "/reference/hardware", label: "Reference", position: "left" },
+        { to: "/docs", label: "Docs", position: "left", activeBaseRegex: "^/docs/?$" },
+        { to: "/docs/getting-started/flashing", label: "Flashing", position: "left" },
+        { to: "/docs/reference/hardware", label: "Reference", position: "left" },
         { type: "search", position: "right" },
         { type: "custom-versionPill", position: "right" },
       ],
@@ -104,17 +105,17 @@ const config: Config = {
         {
           title: "Docs",
           items: [
-            { label: "Overview", to: "/" },
-            { label: "Flashing", to: "/getting-started/flashing" },
-            { label: "First boot", to: "/getting-started/first-boot" },
+            { label: "Overview", to: "/docs" },
+            { label: "Flashing", to: "/docs/getting-started/flashing" },
+            { label: "First boot", to: "/docs/getting-started/first-boot" },
           ],
         },
         {
           title: "Reference",
           items: [
-            { label: "Configuration", to: "/reference/configuration" },
-            { label: "Hardware", to: "/reference/hardware" },
-            { label: "Architecture", to: "/reference/architecture" },
+            { label: "Configuration", to: "/docs/reference/configuration" },
+            { label: "Hardware", to: "/docs/reference/hardware" },
+            { label: "Architecture", to: "/docs/reference/architecture" },
           ],
         },
         {
