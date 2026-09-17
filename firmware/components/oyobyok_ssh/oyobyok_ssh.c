@@ -9,11 +9,20 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 #include "libssh2_sftp.h"
 
 static const char* TAG = "oyobyok_ssh";
 
 static char s_cfg_dir[192] = "/sdcard/git";
+
+// libssh2 builds each SSH packet with these; default is plain malloc, which starves the small
+// internal heap during a push. Outbound packet buffers are large, so they go to PSRAM.
+static void* ssh_malloc(size_t n,void** a){ (void)a;
+    void* p=heap_caps_malloc(n,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT); return p?p:malloc(n); }
+static void* ssh_realloc(void* ptr,size_t n,void** a){ (void)a;
+    void* p=heap_caps_realloc(ptr,n,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT); return p?p:realloc(ptr,n); }
+static void  ssh_free(void* ptr,void** a){ (void)a; free(ptr); }
 
 struct oyobyok_ssh_session {
     int              sock;
@@ -118,7 +127,7 @@ oyobyok_ssh_err_t oyobyok_ssh_connect(const oyobyok_ssh_opts_t* o,oyobyok_ssh_se
     int sock=tcp_connect(o->host,o->port,&why);
     if(sock<0){ if(err) snprintf(err,errlen,"%s",oyobyok_ssh_strerror(why)); return why; }
 
-    LIBSSH2_SESSION* ssh=libssh2_session_init();
+    LIBSSH2_SESSION* ssh=libssh2_session_init_ex(ssh_malloc,ssh_free,ssh_realloc,NULL);
     if(!ssh){ close(sock); return OYOBYOK_SSH_E_MEM; }
     libssh2_session_set_blocking(ssh,1);
 

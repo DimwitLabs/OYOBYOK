@@ -20,11 +20,11 @@
 #include "git2/oid.h"
 #include "git2/pack.h"
 
-#define GIT_PACK_WINDOW 10 /* number of objects to possibly delta against */
-#define GIT_PACK_DEPTH 50 /* max delta depth */
+#define GIT_PACK_WINDOW 4 /* OYOBYOK: 10 upstream; each slot holds a whole object in 2 MB of PSRAM */
+#define GIT_PACK_DEPTH 10 /* OYOBYOK: 50 upstream */
 #define GIT_PACK_DELTA_CACHE_SIZE (256 * 1024 * 1024)
 #define GIT_PACK_DELTA_CACHE_LIMIT 1000
-#define GIT_PACK_BIG_FILE_THRESHOLD (512 * 1024 * 1024)
+#define GIT_PACK_BIG_FILE_THRESHOLD (64 * 1024) /* OYOBYOK: 512 MB upstream; bigger objects are stored whole */
 
 typedef struct git_pobject {
 	git_oid id;

@@ -48,7 +48,7 @@ Internal RAM is the scarce resource. The strategy is to keep small, frequent all
 
 Git, SSH, SFTP and the SFTP server run on one background task with a 40 KB stack in internal RAM. The stack is allocated once at boot, before WiFi and BLE fragment the heap, and reused for every operation; only one runs at a time. It has to be internal because the WiFi transmit path hands stack-resident buffers to DMA.
 
-libgit2 is vendored with two changes: its default file I/O buffer is 4 KB instead of 64 KB (those buffers live on the stack and were the source of every heap corruption seen during development), and its directory removal tolerates FATFS refusing to delete a non-empty directory.
+libgit2 is vendored with a few changes for the device. Its default file I/O buffer is 4 KB instead of 64 KB (those buffers live on the stack and were the source of every heap corruption seen during development). Its directory removal tolerates FATFS refusing to delete a non-empty directory. The pack builder is tuned for 2 MB of PSRAM: a smaller delta window and depth, and a 64 KB deflate scratch buffer rather than 1 MB, so a push does not need a megabyte of contiguous PSRAM that fragmentation has already broken up.
 
 ## Sync
 

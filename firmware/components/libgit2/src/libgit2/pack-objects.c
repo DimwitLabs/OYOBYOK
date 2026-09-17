@@ -62,7 +62,7 @@ struct walk_object {
 #define MIN_PROGRESS_UPDATE_INTERVAL 0.5
 
 /* Size of the buffer to feed to zlib */
-#define COMPRESS_BUFLEN (1024 * 1024)
+#define COMPRESS_BUFLEN (64 * 1024) /* OYOBYOK: 1 MB upstream; a scratch chunk for streamed deflate, PSRAM fragments above this */
 
 static unsigned name_hash(const char *name)
 {
