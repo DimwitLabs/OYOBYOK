@@ -3,5 +3,5 @@ idf_component_register(
     SRCS "oyobyok_blehid.c" "esp_hid_gap.c"
     INCLUDE_DIRS "."
     REQUIRES esp_hid bt oyobyok_host
-    PRIV_REQUIRES nvs_flash esp_coex
+    PRIV_REQUIRES nvs_flash esp_coex esp_timer
 )

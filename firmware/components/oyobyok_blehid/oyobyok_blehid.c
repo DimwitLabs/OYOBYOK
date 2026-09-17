@@ -1,5 +1,6 @@
-// BLE HID keyboard host. Boot-protocol reports are diffed against the previous one to emit presses;
-// auto-repeat comes from the keyboard sending fresh reports.
+// BLE HID keyboard host. Boot-protocol reports are diffed against the previous one to emit presses.
+// A keyboard only reports changes, so a held key is repeated here: the most recent press repeats
+// after REPEAT_DELAY_MS and then every REPEAT_RATE_MS until its report shows it released.
 //
 // Connection model: the keyboard we want is remembered in NVS (address, type, name). A connect task
 // opens it and a security task bonds the link (Just Works). On a drop, or at boot, the task scans for
@@ -21,6 +22,7 @@
 #include "freertos/task.h"
 #include "esp_coexist.h"
 #include "nvs.h"
+#include "esp_timer.h"
 extern void ble_store_config_init(void);
 
 static const char* TAG="oyobyok_blehid";
@@ -28,6 +30,12 @@ static QueueHandle_t s_q;
 static esp_hidh_dev_t* s_dev;
 static char s_name[64];
 static uint8_t s_prev[6];
+
+#define REPEAT_DELAY_MS 380
+#define REPEAT_RATE_MS  38
+static esp_timer_handle_t s_rep_timer;
+static uint8_t  s_rep_usage, s_rep_mod;   // the key being held for repeat, 0 when none
+static int64_t  s_rep_next_us;
 
 static uint8_t  s_conn_bda[6];
 static uint8_t  s_conn_type;
@@ -55,16 +63,33 @@ static void emit(uint8_t mod,uint8_t usage){
     if(oyobyok_key_from_hid(&ev,&k)) xQueueSend(s_q,&k,0);
 }
 
+static void repeat_tick(void* arg){
+    (void)arg;
+    if(!s_rep_usage) return;
+    int64_t now=esp_timer_get_time();
+    if(now<s_rep_next_us) return;
+    emit(s_rep_mod,s_rep_usage);
+    s_rep_next_us=now+REPEAT_RATE_MS*1000LL;
+}
+
 static void parse_report(const uint8_t* d,int len){
     if(len<8) return;
     uint8_t mod=d[0]; const uint8_t* keys=d+2;
+    int repeat_still_down=0;
     for(int i=0;i<6;i++){
         uint8_t u=keys[i];
         if(u<=1) continue;
+        if(u==s_rep_usage) repeat_still_down=1;
         int held=0;
         for(int j=0;j<6;j++) if(s_prev[j]==u){ held=1; break; }
-        if(!held) emit(mod,u);
+        if(!held){
+            emit(mod,u);
+            s_rep_usage=u; s_rep_mod=mod; repeat_still_down=1;
+            s_rep_next_us=esp_timer_get_time()+REPEAT_DELAY_MS*1000LL;
+        }
     }
+    if(!repeat_still_down) s_rep_usage=0;
+    else s_rep_mod=mod;   // a modifier pressed or released while the key is held changes what repeats
     memcpy(s_prev,keys,6);
 }
 
@@ -75,14 +100,14 @@ static void hidh_cb(void* handler_args,esp_event_base_t base,int32_t id,void* da
     esp_hidh_event_t ev=(esp_hidh_event_t)id; esp_hidh_event_data_t* p=data;
     switch(ev){
         case ESP_HIDH_OPEN_EVENT:
-            if(p->open.status==ESP_OK){ s_dev=p->open.dev; memset(s_prev,0,sizeof s_prev);
+            if(p->open.status==ESP_OK){ s_dev=p->open.dev; memset(s_prev,0,sizeof s_prev); s_rep_usage=0;
                 ESP_LOGI(TAG,"keyboard connected"); notify_ui(OYOBYOK_CTL_BT_OK); }
             else { ESP_LOGW(TAG,"keyboard open failed status=%d",p->open.status); notify_ui(OYOBYOK_CTL_BT_FAIL); }
             break;
         case ESP_HIDH_INPUT_EVENT:
             parse_report(p->input.data,p->input.length); break;
         case ESP_HIDH_CLOSE_EVENT:
-            ESP_LOGI(TAG,"keyboard disconnected (reason=%d)",p->close.reason); s_dev=NULL; notify_ui(OYOBYOK_CTL_BT_FAIL);
+            ESP_LOGI(TAG,"keyboard disconnected (reason=%d)",p->close.reason); s_dev=NULL; s_rep_usage=0; notify_ui(OYOBYOK_CTL_BT_FAIL);
             // 517 auth failure, 518 key missing, 534 encryption failed: the bond is dead on one side.
             if(p->close.reason==517||p->close.reason==518||p->close.reason==534) s_fresh_pair_next=true;
             if(s_want_conn && !s_scanning){ s_reconnect_by_name=true; ensure_conn_task(); }
@@ -102,6 +127,8 @@ esp_err_t oyobyok_blehid_init(QueueHandle_t key_q){
     esp_err_t r=esp_hid_gap_init(HIDH_BLE_MODE); if(r!=ESP_OK) return r;
     esp_hidh_config_t cfg={ .callback=hidh_cb, .event_stack_size=4096, .callback_arg=NULL };
     r=esp_hidh_init(&cfg); if(r!=ESP_OK) return r;
+    const esp_timer_create_args_t ta={ .callback=repeat_tick, .name="kbrepeat" };
+    if(esp_timer_create(&ta,&s_rep_timer)==ESP_OK) esp_timer_start_periodic(s_rep_timer,REPEAT_RATE_MS*1000/2);
     // Keyboards keep their report map behind an encrypted link, so bond with Just Works and persist
     // the keys for silent reconnects.
     ble_hs_cfg.sm_io_cap        = BLE_HS_IO_NO_INPUT_OUTPUT;
