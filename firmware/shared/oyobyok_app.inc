@@ -21,7 +21,7 @@
   #define APPLOG(fmt,...) fprintf(stderr, "[oyobyok_app] " fmt "\n", ##__VA_ARGS__)
 #endif
 
-#define OYOBYOK_VERSION "1.0.0"
+#define OYOBYOK_VERSION "1.1.0"
 enum { SCR_MENU=1, SCR_EDITOR, SCR_LIST, SCR_ENTRY, SCR_ALERT, SCR_GITSTATUS, SCR_NLIST, SCR_BTSCAN, SCR_CONTRAST, SCR_DISK };
 
 // SCR_LIST contents. Every list has "Back" as row 0.

@@ -33,7 +33,7 @@
 
 static const char* TAG="oyobyok_sshd";
 
-#define VERSION_STR   "SSH-2.0-OYOBYOK_1.1"
+#define VERSION_STR   "SSH-2.0-OYOBYOK_1.1.0"
 #define MAX_PACKET    36000          // the client is told 32768 for channel data; this leaves room around it
 #define OUR_WINDOW    262144
 #define BLOCK         16
