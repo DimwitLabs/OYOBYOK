@@ -19,7 +19,9 @@ for i in 0 1 2 3 4; do run "splash $i\nsnap $O/splash/$i\n"; done
 run "splash 0\nsnap $O/splash\n"
 run "down\nup\nsnap $O/main-menu\n"
 # Projects: Back, New Project, Drafts, Novel, Manage. Inside Drafts: Back, New File, New Folder, pieces, chapter-one.txt, notes.txt, Manage.
-run "enter\nsnap $O/projects\ndown\ndown\nenter\nsnap $O/project\npower\nsnap $O/project-status\npower\ndown\ndown\ndown\ndown\ndown\ndown\nenter\nsnap $O/manage\ndown\ndown\ndown\ndown\nenter\nsnap $O/manage-choose\ndown\nenter\nsnap $O/manage-delete\n"
+run "enter\nsnap $O/projects\ndown\ndown\nenter\nsnap $O/project\npower\nsnap $O/project-status\npower\ndown\ndown\ndown\ndown\ndown\ndown\nenter\nsnap $O/manage\ndown\ndown\ndown\ndown\nenter\nsnap $O/manage-choose\ndown\ndown\nenter\nsnap $O/manage-delete\n"
+# Move notes.txt: Manage, pick it, Move, open pieces, snap the destination picker, then cancel.
+run "enter\ndown\ndown\nenter\ndown\ndown\ndown\ndown\ndown\ndown\nenter\ndown\ndown\ndown\ndown\ndown\nenter\ndown\nenter\ndown\ndown\ndown\nenter\nsnap $O/manage-move\ndown\ndown\nenter\n"
 run "enter\ndown\ndown\nenter\ndown\nenter\nt chapter-two\nsnap $O/new-file\n"
 run "enter\ndown\ndown\nenter\ndown\ndown\ndown\ndown\nenter\nend\nsnap $O/editor\npower\nsnap $O/editor-status\npower\nhome\n$(sr 27)snap $O/editor-select\n"
 run "down\nenter\nsnap $O/synchronise\ndown\nenter\nsnap $O/git-repos\ndown\nenter\nsnap $O/git\ndown\nenter\n$(ticks 12)snap $O/git-syncing\n"

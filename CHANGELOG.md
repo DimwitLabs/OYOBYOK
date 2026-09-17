@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- `Move` in Manage mode: pick a file or folder, walk to another folder, `Move here`.
 - Backspace, arrows and letters repeat after a short delay while the key stays down; the keyboard itself only reports changes.
 
 ## [1.0.0] - 2026-09-05

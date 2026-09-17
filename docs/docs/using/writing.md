@@ -23,7 +23,7 @@ Inside a project the list has `Back`, `+ New File`, `+ New Folder`, then folders
 
 ![Naming a new file](/img/screens/new-file.png)
 
-The names Back, New Project and Manage are reserved, because they are rows in the list; the device will tell you if you try to use one.
+The names Back, New Project, Manage, Move here and Cancel move are reserved, because they are rows in the list; the device will tell you if you try to use one.
 
 Press `POWER` on any list to see the status panel: how many items are in the folder, the battery, and free space on the card.
 
@@ -31,13 +31,19 @@ Press `POWER` on any list to see the status panel: how many items are in the fol
 
 ## Manage Mode
 
-`Manage` at the bottom of any list switches it into Manage mode. The row turns into `Done` with a tick, MANAGE appears in the corner, and picking a file or folder now offers `Rename`, `Delete` or `Cancel` instead of opening it.
+`Manage` at the bottom of any list switches it into Manage mode. The row turns into `Done` with a tick, MANAGE appears in the corner, and picking a file or folder now offers `Rename`, `Move`, `Delete` or `Cancel` instead of opening it.
 
 ![Manage mode](/img/screens/manage.png)
 
-![Rename, delete or cancel](/img/screens/manage-choose.png)
+![Rename, move, delete or cancel](/img/screens/manage-choose.png)
 
-`Rename` opens the name for editing with the old one filled in. Renaming to a name that already exists is refused. `Delete` asks once more before it does anything, and for a folder it says so: the folder and everything in it go.
+`Rename` opens the name for editing with the old one filled in. Renaming to a name that already exists is refused.
+
+`Move` turns the list into a destination picker: MOVE appears in the corner, the item on the move is hidden, and every folder shows `Move here` and `Cancel move` at the top. Walk to the folder you want with the usual rows, then pick `Move here`. A file cannot be moved to the top of Projects, since only folders live there; a folder moved there becomes a project. Moving onto a name that already exists is refused.
+
+![Choosing where to move a file](/img/screens/manage-move.png)
+
+`Delete` asks once more before it does anything, and for a folder it says so: the folder and everything in it go.
 
 ![Confirming a delete](/img/screens/manage-delete.png)
 

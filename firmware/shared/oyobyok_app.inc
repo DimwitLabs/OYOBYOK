@@ -81,7 +81,7 @@ static char edbuf[8192]; static int edlen=0;
 static char entryPrompt[64]="", entryBuf[256];
 static char alertTitle[64], alertMsg[256];
 static char listItems[32][48]; static int listN=0, listSel=0, listType=0;
-enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8 };
+enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8, FK_MOVEHERE=9, FK_MOVECANCEL=10 };
 static int  listKind[32];
 enum { NL_MANAGE, NL_DELCONFIRM };
 static int  nMode=NL_MANAGE, nN=0, nSel=0;
@@ -90,8 +90,9 @@ static int  s_bt_pending=0, s_bt_ndev=0;
 static int  entryCtxFS=0;        // naming a new object: 1 file, 2 folder, 3 project
 static int  entryCtxRename=0;
 static int  entryCtxWifi=0, entryCtxWifiName=0;
-static int  s_manage=0;          // file manager in Manage (rename/delete) mode
+static int  s_manage=0;          // file manager in Manage (rename/move/delete) mode
 static char mgTarget[64]="";  static int mgIsDir=0;
+static char mvSrc[480]="";       // full path of the item being moved, empty when not moving
 static char wifiSSID[33]="";
 static char curProject[64]="", curFile[64]="", lastPush[24]="never";
 static char curDir[400]="", appReposRoot[256]="";
@@ -101,7 +102,7 @@ static GitResult gStat; static GitRemote gRem;
 static int  ci_eq(const char* a,const char* b){ for(;*a&&*b;a++,b++){
         char x=*a,y=*b; if(x>='A'&&x<='Z')x+=32; if(y>='A'&&y<='Z')y+=32; if(x!=y)return 0; }
     return *a==*b; }
-static int  name_reserved(const char* nm){ return ci_eq(nm,"Back")||ci_eq(nm,"New Project")||ci_eq(nm,"Manage"); }
+static int  name_reserved(const char* nm){ return ci_eq(nm,"Back")||ci_eq(nm,"New Project")||ci_eq(nm,"Manage")||ci_eq(nm,"Move here")||ci_eq(nm,"Cancel move"); }
 
 static void mark_synced(void){
     time_t t=time(NULL);
@@ -304,12 +305,14 @@ static void browser_render(void){
         else if(k==FK_UP||k==FK_BACK) blit(9,y+1,G_BACK,7,7);
         else if(k==FK_FILE)           blit(10,y,G_DOC,8,6);
         else if(k==FK_MANAGE)         blit(10,y+1,s_manage?G_CHECK:G_PENCIL,7,7);
+        else if(k==FK_MOVEHERE)       blit(10,y+1,G_CHECK,7,7);
         else tx=9;
         text(tx,y,listItems[idx]);
     }
     if(top>0)         blit(W-6,0,  G_UP,  5,5);
     if(top+vis<listN) blit(W-6,H-5,G_DOWN,5,5);
     if(s_manage) rtext_small(W-8,1,"MANAGE");
+    else if(mvSrc[0]) rtext_small(W-8,1,"MOVE");
 }
 
 static void batt_str(char* b,int n){ int p=s_batt_pct?s_batt_pct():-1; if(p>=0) snprintf(b,n,"%d%%",p); else b[0]=0; }
@@ -425,7 +428,13 @@ static void render_current(void){
 static void browser_refill(void){
     listN=0; listSel=0; listType=LT_FILE;
     int atRoot = (strcmp(cur_dir(),appReposRoot)==0);
-    if(atRoot){
+    if(mvSrc[0]){
+        // Moving: the list is for choosing a destination. A file cannot land at the root, where
+        // only project folders are shown; the item on the move is hidden from the listing.
+        snprintf(listItems[listN],48,"Back");  listKind[listN]=atRoot?FK_BACK:FK_UP; listN++;
+        if(!atRoot || mgIsDir){ snprintf(listItems[listN],48,"Move here"); listKind[listN]=FK_MOVEHERE; listN++; }
+        snprintf(listItems[listN],48,"Cancel move");         listKind[listN]=FK_MOVECANCEL; listN++;
+    } else if(atRoot){
         snprintf(listItems[listN],48,"Back");          listKind[listN]=FK_BACK;    listN++;
         snprintf(listItems[listN],48,"+ New Project"); listKind[listN]=FK_NEWPROJ; listN++;
     } else {
@@ -441,6 +450,7 @@ static void browser_refill(void){
                 if(e->d_name[0]=='.') continue;
                 char full[600]; snprintf(full,sizeof full,"%s/%.90s",cur_dir(),e->d_name);
                 struct stat st; if(stat(full,&st)!=0) continue;
+                if(mvSrc[0] && strcmp(full,mvSrc)==0) continue;
                 int isdir=S_ISDIR(st.st_mode)?1:0;
                 if(atRoot && !isdir) continue;
                 if((pass==0)!=(isdir!=0)) continue;
@@ -451,7 +461,7 @@ static void browser_refill(void){
         closedir(dp);
     }
     int hasItems=0; for(int i=0;i<listN;i++) if(listKind[i]==FK_DIR||listKind[i]==FK_FILE){ hasItems=1; break; }
-    if(hasItems && listN<31){
+    if(hasItems && !mvSrc[0] && listN<31){
         snprintf(listItems[listN],48,s_manage?"Done":"Manage");
         listKind[listN]=FK_MANAGE; listN++;
     } else if(!hasItems) s_manage=0;
@@ -480,9 +490,18 @@ static int rm_rf(const char* path){
     }
     return unlink(path);
 }
+// "Move here": the item on the move lands in the current folder under its own name.
+static void move_finish(void){
+    char dst[600]; snprintf(dst,sizeof dst,"%s/%.63s",cur_dir(),mgTarget);
+    struct stat st;
+    if(strcmp(dst,mvSrc)==0){ mvSrc[0]=0; browser_refill(); return; }
+    if(stat(dst,&st)==0){ char m[64]; snprintf(m,sizeof m,"'%.24s' already exists here.",mgTarget); alert("Move",m); return; }
+    if(rename(mvSrc,dst)!=0){ alert("Move","Could not move it."); return; }
+    mvSrc[0]=0; browser_refill(); screen=SCR_LIST;
+}
 static void browser_open(void){
     snprintf(curDir,sizeof curDir,"%s",appReposRoot);
-    curProject[0]=0;
+    curProject[0]=0; mvSrc[0]=0; s_manage=0;
     browser_refill(); screen=SCR_LIST;
 }
 
@@ -732,11 +751,14 @@ static void app_enter(void){
             if(k==FK_MANAGE){ s_manage=!s_manage; browser_refill(); return; }
             if(s_manage && (k==FK_DIR||k==FK_FILE)){
                 snprintf(mgTarget,sizeof mgTarget,"%.63s",listItems[listSel]); mgIsDir=(k==FK_DIR);
-                nN=0; snprintf(nItems[nN++],48,"Rename"); snprintf(nItems[nN++],48,"Delete"); snprintf(nItems[nN++],48,"Cancel");
+                nN=0; snprintf(nItems[nN++],48,"Rename"); snprintf(nItems[nN++],48,"Move");
+                snprintf(nItems[nN++],48,"Delete"); snprintf(nItems[nN++],48,"Cancel");
                 nMode=NL_MANAGE; nSel=0; screen=SCR_NLIST; return;
             }
             if(s_manage && (k==FK_BACK||k==FK_UP)){ s_manage=0; browser_refill(); return; }
-            if(k==FK_BACK){ listType=0; curmenu=M_MAIN; screen=SCR_MENU; }
+            if(k==FK_MOVECANCEL){ mvSrc[0]=0; browser_refill(); return; }
+            if(k==FK_MOVEHERE){ move_finish(); return; }
+            if(k==FK_BACK){ mvSrc[0]=0; listType=0; curmenu=M_MAIN; screen=SCR_MENU; }
             else if(k==FK_UP){
                 char* s=strrchr(curDir,'/'); if(s) *s=0;
                 if(strcmp(curDir,appReposRoot)==0) curProject[0]=0;
@@ -843,7 +865,9 @@ static void app_enter(void){
         if(nMode==NL_MANAGE){
             if(nSel==0){ entryCtxRename=1; snprintf(entryPrompt,sizeof entryPrompt,"Rename to:");
                          snprintf(entryBuf,sizeof entryBuf,"%.63s",mgTarget); screen=SCR_ENTRY; return; }
-            if(nSel==1){ nN=0; snprintf(nItems[nN++],48,mgIsDir?"Delete folder + contents":"Delete file");
+            if(nSel==1){ snprintf(mvSrc,sizeof mvSrc,"%.400s/%.63s",cur_dir(),mgTarget); s_manage=0;
+                         browser_refill(); screen=SCR_LIST; return; }
+            if(nSel==2){ nN=0; snprintf(nItems[nN++],48,mgIsDir?"Delete folder + contents":"Delete file");
                          snprintf(nItems[nN++],48,"Cancel"); nMode=NL_DELCONFIRM; nSel=1; return; }
             browser_refill(); screen=SCR_LIST; return;
         }
@@ -857,7 +881,7 @@ static void app_esc(void){
     if(screen==SCR_EDITOR){ oyobyok_app_save_close(); }
     else if(screen==SCR_LIST){
         if(listType==LT_FILE){
-            if(strcmp(curDir,appReposRoot)==0){ listType=0; curmenu=M_MAIN; screen=SCR_MENU; }
+            if(strcmp(curDir,appReposRoot)==0){ mvSrc[0]=0; listType=0; curmenu=M_MAIN; screen=SCR_MENU; }
             else { char* s=strrchr(curDir,'/'); if(s)*s=0;
                    if(strcmp(curDir,appReposRoot)==0) curProject[0]=0;
                    browser_refill(); }
