@@ -86,9 +86,10 @@ static int  have_editor=0, status_on=0;
 static char edbuf[8192]; static int edlen=0;
 static char entryPrompt[64]="", entryBuf[256];
 static char alertTitle[64], alertMsg[256];
-static char listItems[32][48]; static int listN=0, listSel=0, listType=0;
+#define FB_MAX 256
+static char listItems[FB_MAX][48]; static int listN=0, listSel=0, listType=0;
 enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8, FK_MOVEHERE=9, FK_MOVECANCEL=10, FK_SENDALL=11 };
-static int  listKind[32];
+static int  listKind[FB_MAX];
 enum { NL_MANAGE, NL_DELCONFIRM };
 static int  nMode=NL_MANAGE, nN=0, nSel=0;
 static char nItems[20][48];
@@ -433,6 +434,42 @@ static void render_current(void){
 
 // ---- file manager -------------------------------------------------------------------------------
 // A project is a top-level folder under appReposRoot; it may contain files and sub-folders.
+// Compare two names so that numbers in them order by value: bookmark-999 before bookmark-1000.
+static int nat_cmp(const char* a,const char* b){
+    while(*a && *b){
+        int da=(*a>='0'&&*a<='9'), db=(*b>='0'&&*b<='9');
+        if(da && db){
+            while(*a=='0') a++;
+            while(*b=='0') b++;
+            const char *ea=a,*eb=b;
+            while(*ea>='0'&&*ea<='9') ea++;
+            while(*eb>='0'&&*eb<='9') eb++;
+            int la=(int)(ea-a), lb=(int)(eb-b);
+            if(la!=lb) return la-lb;
+            int c=strncmp(a,b,(size_t)la); if(c) return c;
+            a=ea; b=eb; continue;
+        }
+        char ca=*a, cb=*b;
+        if(ca>='A'&&ca<='Z') ca+=32;
+        if(cb>='A'&&cb<='Z') cb+=32;
+        if(ca!=cb) return (int)(unsigned char)ca-(int)(unsigned char)cb;
+        a++; b++;
+    }
+    return (int)(unsigned char)*a-(int)(unsigned char)*b;
+}
+// Order listItems[from..to): folders before files, each group by nat_cmp. Small folders, so selection sort.
+static void sort_entries(int from,int to){
+    for(int i=from;i<to;i++){
+        int m=i;
+        for(int j=i+1;j<to;j++){
+            int better = listKind[j]!=listKind[m] ? (listKind[j]==FK_DIR)
+                                                  : (nat_cmp(listItems[j],listItems[m])<0);
+            if(better) m=j;
+        }
+        if(m!=i){ char t[48]; strcpy(t,listItems[i]); strcpy(listItems[i],listItems[m]); strcpy(listItems[m],t);
+                  int tk=listKind[i]; listKind[i]=listKind[m]; listKind[m]=tk; }
+    }
+}
 static void browser_refill(void){
     listN=0; listSel=0; listType=LT_FILE;
     int atRoot = (strcmp(cur_dir(),appReposRoot)==0);
@@ -449,26 +486,27 @@ static void browser_refill(void){
         snprintf(listItems[listN],48,"+ New File");    listKind[listN]=FK_NEWFILE;   listN++;
         snprintf(listItems[listN],48,"+ New Folder");  listKind[listN]=FK_NEWFOLDER; listN++;
     }
+    int firstEntry=listN, truncated=0;
     DIR* dp=opendir(cur_dir());
     if(dp){
-        for(int pass=0;pass<2;pass++){                  // folders first, then files
-            rewinddir(dp); struct dirent* e;
-            while((e=readdir(dp)) && listN<30){
-                if(e->d_name[0]=='.') continue;
-                char full[600]; snprintf(full,sizeof full,"%s/%.90s",cur_dir(),e->d_name);
-                struct stat st; if(stat(full,&st)!=0) continue;
-                if(mvSrc[0] && strcmp(full,mvSrc)==0) continue;
-                int isdir=S_ISDIR(st.st_mode)?1:0;
-                if(atRoot && !isdir) continue;
-                if((pass==0)!=(isdir!=0)) continue;
-                snprintf(listItems[listN],48,"%.46s",e->d_name);
-                listKind[listN]=isdir?FK_DIR:FK_FILE; listN++;
-            }
+        struct dirent* e;
+        while((e=readdir(dp))){
+            if(e->d_name[0]=='.') continue;
+            char full[600]; snprintf(full,sizeof full,"%s/%.90s",cur_dir(),e->d_name);
+            struct stat st; if(stat(full,&st)!=0) continue;
+            if(mvSrc[0] && strcmp(full,mvSrc)==0) continue;
+            int isdir=S_ISDIR(st.st_mode)?1:0;
+            if(atRoot && !isdir) continue;
+            if(listN>=FB_MAX-2){ truncated=1; continue; }
+            snprintf(listItems[listN],48,"%.46s",e->d_name);
+            listKind[listN]=isdir?FK_DIR:FK_FILE; listN++;
         }
         closedir(dp);
     }
+    sort_entries(firstEntry,listN);
+    if(truncated && listN<FB_MAX){ snprintf(listItems[listN],48,"(too many to show; use Disk Mode)"); listKind[listN]=FK_PLAIN; listN++; }
     int hasItems=0; for(int i=0;i<listN;i++) if(listKind[i]==FK_DIR||listKind[i]==FK_FILE){ hasItems=1; break; }
-    if(hasItems && !mvSrc[0] && listN<31){
+    if(hasItems && !mvSrc[0] && listN<FB_MAX){
         snprintf(listItems[listN],48,s_manage?"Done":"Manage");
         listKind[listN]=FK_MANAGE; listN++;
     } else if(!hasItems) s_manage=0;

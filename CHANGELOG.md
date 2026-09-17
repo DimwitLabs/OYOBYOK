@@ -20,6 +20,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - Git Sync no longer runs out of memory when pushing. libssh2's packet buffers now come from PSRAM, and the pack builder uses a 64 KB deflate buffer instead of 1 MB.
+- Folders with many files now show all of them, sorted so numbered names like bookmark-999 come before bookmark-1000. The file manager used to stop after about thirty entries.
 
 ## [1.0.0] - 2026-09-05
 
