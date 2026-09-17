@@ -26,7 +26,10 @@ run "enter\ndown\ndown\nenter\ndown\nenter\nt chapter-two\nsnap $O/new-file\n"
 run "enter\ndown\ndown\nenter\ndown\ndown\ndown\ndown\nenter\nend\nsnap $O/editor\npower\nsnap $O/editor-status\npower\nhome\n$(sr 27)snap $O/editor-select\n"
 run "down\nenter\nsnap $O/synchronise\ndown\nenter\nsnap $O/git-repos\ndown\nenter\nsnap $O/git\ndown\nenter\n$(ticks 12)snap $O/git-syncing\n"
 run "down\nenter\ndown\ndown\nenter\nsnap $O/wifi\n"
-run "down\nenter\ndown\ndown\ndown\nenter\ndown\nsnap $O/sftp\nenter\ndown\nsnap $O/sftp-project\nenter\n$(ticks 9)snap $O/sftp-pushing\n"
+# Synchronise > SFTP: Back, Serve, Send. Send: Back, Laptop, Study Pi. Then a project, then Whole project / folders / files.
+run "down\nenter\ndown\ndown\ndown\nenter\nsnap $O/sftp\ndown\nenter\nsnap $O/sftp-serve\n"
+run "down\nenter\ndown\ndown\ndown\nenter\ndown\ndown\nenter\ndown\nsnap $O/sftp-send\nenter\ndown\nsnap $O/sftp-project\nenter\nsnap $O/sftp-pick\ndown\nenter\n$(ticks 9)snap $O/sftp-pushing\n"
+run "down\nenter\ndown\ndown\ndown\nenter\ndown\ndown\nenter\ndown\nenter\ndown\nenter\ndown\ndown\ndown\nenter\nsnap $O/sftp-pushing-file\n"
 run "down\ndown\ndown\nenter\nsnap $O/disk-mode\n"
 run "down\ndown\ndown\ndown\nenter\nsnap $O/settings\ndown\nenter\nsnap $O/contrast\n"
 rm -f "$O"/*.ppm "$O"/splash/*.ppm; rm -rf emu_frames

@@ -17,3 +17,4 @@ void oyobyok_wifi_connect_known(const char* ssid);
 int  oyobyok_wifi_known_list(char ssids[][33], int max);
 void oyobyok_wifi_disconnect(void);
 bool oyobyok_wifi_connected_name(char* buf, int n);
+bool oyobyok_wifi_ip(char* buf, int n);              // false until an address is assigned

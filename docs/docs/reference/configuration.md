@@ -13,8 +13,9 @@ Everything the device reads lives on the SD card. Nothing is typed on the device
 /projects/                 one folder per project, text files and sub-folders inside
 /projects/.oyobyokprefs    contrast, keyboard layout, cursor style
 /git/remotes.conf          Git remotes and identity
-/git/sftp.conf             SFTP servers (optional)
-/git/keys/                 SSH private keys
+/git/sftp.conf             SFTP servers to send to (optional)
+/git/authorized_keys       extra keys allowed to log in when the device serves SFTP (optional)
+/git/keys/                 SSH private keys; host_ecdsa appears here the first time the device serves
 /git/known_hosts           SFTP host keys, filled in on first connection
 ```
 
@@ -77,6 +78,10 @@ RSA or ECDSA in PEM form. ed25519 is not supported by the mbedTLS backend. For R
 ```bash
 ssh-keygen -t rsa -b 3072 -m PEM -N "" -f oyobyok_rsa
 ```
+
+## authorized_keys
+
+Optional. When the device serves SFTP it always accepts its own key pair (`keys/oyobyok_rsa.pub`), so the private key you made for it logs you in from your machine. To let other keys in, list them here, one per line, exactly as they appear in a `.pub` file or `~/.ssh/authorized_keys`. ed25519, ECDSA P-256 and RSA keys are accepted.
 
 ## .oyobyokprefs
 

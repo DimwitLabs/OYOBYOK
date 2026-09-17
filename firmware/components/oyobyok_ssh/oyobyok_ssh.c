@@ -239,3 +239,18 @@ int oyobyok_ssh_sftp_push_dir(oyobyok_ssh_session_t* s,const char* local_dir,con
     ESP_LOGI(TAG,"SFTP push %s: %d files -> %s",rc==0?"done":"failed",count,remote_dir);
     return rc==0 ? count : -1;
 }
+
+int oyobyok_ssh_sftp_push_file(oyobyok_ssh_session_t* s,const char* local_file,const char* remote_path,char* err,int errlen){
+    if(err&&errlen) err[0]=0;
+    if(!s||!s->ssh||!local_file||!remote_path) return -1;
+    LIBSSH2_SFTP* sftp=libssh2_sftp_init(s->ssh);
+    if(!sftp){ if(err) snprintf(err,errlen,"SFTP init failed"); return -1; }
+    s_sftp_done=0;
+    { char tmp[384]; snprintf(tmp,sizeof tmp,"%s",remote_path);
+      for(char* q=tmp+1;*q;q++) if(*q=='/'){ *q=0; libssh2_sftp_mkdir(sftp,tmp,0755); *q='/'; } }
+    int rc=sftp_put_file(sftp,local_file,remote_path);
+    if(rc==0) s_sftp_done=1; else if(err) snprintf(err,errlen,"upload failed");
+    libssh2_sftp_shutdown(sftp);
+    ESP_LOGI(TAG,"SFTP push %s: %s -> %s",rc==0?"done":"failed",local_file,remote_path);
+    return rc;
+}

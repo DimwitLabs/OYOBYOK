@@ -37,8 +37,11 @@ void oyobyok_app_set_hw(void(*set_contrast)(int v), void(*set_kblayout)(int layo
 void oyobyok_app_set_led(void(*led)(int state));
 void oyobyok_app_set_disk(int(*enter)(void));
 void oyobyok_app_set_ssh(void(*test)(void), const char*(*result)(void));
-// push(server, project) uploads <projects>/<project> to that server; progress() is files done so far.
-void oyobyok_app_set_sftp(int(*list)(char(*)[33],int), void(*push)(int,const char*), const char*(*result)(void), int(*progress)(void));
+// push(server, project, rel) uploads <projects>/<project>/<rel> to that server (rel "" is the whole
+// project; a file or a folder otherwise); progress() is files done so far.
+void oyobyok_app_set_sftp(int(*list)(char(*)[33],int), void(*push)(int,const char*,const char*), const char*(*result)(void), int(*progress)(void));
+// The SFTP server: start() returns 0 when it is up, and the task ends with OYOBYOK_CTL_SFTP_DONE after stop().
+void oyobyok_app_set_sftpd(int(*start)(void), void(*stop)(void), int(*ip)(char*,int), int(*client)(void), int(*files)(void));
 // sync/status run on a background task and finish with OYOBYOK_CTL_GIT_DONE; take() hands over a Status result.
 void oyobyok_app_set_git(void(*sync)(const char*), void(*status)(const char*), int(*take)(GitResult*), const char*(*result)(void));
 void oyobyok_app_set_wifi(int(*scan)(char(*)[33],int), int(*known)(char(*)[33],int),

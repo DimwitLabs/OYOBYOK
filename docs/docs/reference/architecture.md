@@ -23,7 +23,8 @@ Two programs include that file. The device host (`components/oyobyok_host`) read
 | `oyobyok_led` | WS2812 state machine: latched conditions resolved by priority, event flashes on top. |
 | `oyobyok_wifi` | Station mode, known networks in NVS, scan, connect, SNTP once an address arrives. |
 | `oyobyok_blehid` | NimBLE HID host: scan, bond, remember, reconnect by name, report parsing. |
-| `oyobyok_ssh` | libssh2: connect, host key trust on first use, key auth, exec, SFTP directory push. |
+| `oyobyok_ssh` | libssh2: connect, host key trust on first use, key auth, exec, SFTP push of a directory or a file. |
+| `oyobyok_sshd` | The SFTP server: a small SSH server on mbedTLS (ECDH and ECDSA P-256, aes128-ctr, hmac-sha2-256) with public-key login and SFTP v3 over the Projects folder. TweetNaCl checks ed25519 client keys. |
 | `oyobyok_git` | libgit2 implementation of the Git engine interface. |
 | `oyobyok_disk` | USB mass storage over the SD card for Disk Mode. |
 | `oyobyok_host` | The app core on the device, plus the HID-usage-to-key map with layouts. |
@@ -45,7 +46,7 @@ While a network operation runs, the keyboard link is widened to an 80 to 100 ms 
 
 Internal RAM is the scarce resource. The strategy is to keep small, frequent allocations internal (so LWIP's buffers stay DMA-safe) and to send the known heavy consumers to PSRAM by name: the NimBLE host heap, mbedTLS, libgit2 through its allocator hook, libssh2 through its session allocator. Hardware AES and SHA are turned off because the accelerators DMA their buffers, which cannot be in PSRAM; software crypto is fine at the sizes involved.
 
-Git, SSH and SFTP run on one background task with a 40 KB stack in internal RAM. The stack is allocated once at boot, before WiFi and BLE fragment the heap, and reused for every operation; only one runs at a time. It has to be internal because the WiFi transmit path hands stack-resident buffers to DMA.
+Git, SSH, SFTP and the SFTP server run on one background task with a 40 KB stack in internal RAM. The stack is allocated once at boot, before WiFi and BLE fragment the heap, and reused for every operation; only one runs at a time. It has to be internal because the WiFi transmit path hands stack-resident buffers to DMA.
 
 libgit2 is vendored with two changes: its default file I/O buffer is 4 KB instead of 64 KB (those buffers live on the stack and were the source of every heap corruption seen during development), and its directory removal tolerates FATFS refusing to delete a non-empty directory.
 

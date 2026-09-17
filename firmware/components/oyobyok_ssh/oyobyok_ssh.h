@@ -45,4 +45,6 @@ oyobyok_ssh_err_t oyobyok_ssh_exec(oyobyok_ssh_session_t* s, const char* cmd, ch
 // Upload a local directory tree into remote_dir, creating directories and overwriting files. Nothing is
 // deleted on the server. Returns the number of files sent, or -1 with a message in err.
 int oyobyok_ssh_sftp_push_dir(oyobyok_ssh_session_t* s, const char* local_dir, const char* remote_dir, char* err, int errlen);
+// Upload one file to remote_path, creating the remote parents. Returns 0, or -1 with a message in err.
+int oyobyok_ssh_sftp_push_file(oyobyok_ssh_session_t* s, const char* local_file, const char* remote_path, char* err, int errlen);
 int oyobyok_ssh_sftp_files_done(void);   // progress of the push in flight

@@ -25,7 +25,7 @@ OYOBYOK is an alternative firmware for the BYOK writing device, written entirely
 
 <p align="center"><img src="docs/static/img/screens/main-menu.png" alt="The main menu" width="100%" /></p>
 
-Projects of plain text files on the SD card, with a proper editor. One-step Git Sync over SSH (commit, fetch, rebase, push; conflicts kept with markers, never blocking). SFTP push of a project to a machine of yours. A Bluetooth keyboard that pairs once and comes back on its own. WiFi that exists only while you are on the Synchronise page. Disk Mode for moving files over USB. A status LED that tells you what is going on. Contrast, layout, cursor and backlight settings that stick.
+Projects of plain text files on the SD card, with a proper editor. One-step Git Sync over SSH (commit, fetch, rebase, push; conflicts kept with markers, never blocking). SFTP in both directions: the device serves its projects to your laptop, or pushes a project, a folder or a file to a machine of yours. A Bluetooth keyboard that pairs once and comes back on its own. WiFi that exists only while you are on the Synchronise page. Disk Mode for moving files over USB. A status LED that tells you what is going on. Contrast, layout, cursor and backlight settings that stick.
 
 Everything is native C. There is no scripting layer, no runtime, no app store. The whole user interface is one state machine that also compiles on a laptop, so most of it was written and tested without touching the hardware.
 

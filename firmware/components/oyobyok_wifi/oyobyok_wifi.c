@@ -23,6 +23,7 @@ static bool s_connecting=false;
 static int  s_retry=0;
 static char s_target[33]={0};
 static char s_connected[33]={0};
+static char s_ip[20]={0};
 static esp_netif_t* s_netif=NULL;
 
 static void post(uint8_t code){ if(s_q){ oyobyok_key_t k={0}; k.is_control=true; k.keycode=code; xQueueSend(s_q,&k,0);} }
@@ -31,12 +32,13 @@ static void on_wifi(void* arg,esp_event_base_t base,int32_t id,void* data){
     if(base==WIFI_EVENT && id==WIFI_EVENT_STA_START){
         if(s_connecting) esp_wifi_connect();
     } else if(base==WIFI_EVENT && id==WIFI_EVENT_STA_DISCONNECTED){
-        s_connected[0]=0;
+        s_connected[0]=0; s_ip[0]=0;
         if(s_connecting){
             if(s_retry<MAX_RETRY){ s_retry++; esp_wifi_connect(); }
             else { s_connecting=false; ESP_LOGW(TAG,"connect failed for '%s'",s_target); post(WIFI_CTL_FAIL); }
         }
     } else if(base==IP_EVENT && id==IP_EVENT_STA_GOT_IP){
+        ip_event_got_ip_t* ev=data; snprintf(s_ip,sizeof s_ip,IPSTR,IP2STR(&ev->ip_info.ip));
         s_connecting=false; s_retry=0;
         snprintf(s_connected,sizeof s_connected,"%s",s_target);
         ESP_LOGI(TAG,"connected: '%s'",s_connected);
@@ -174,3 +176,4 @@ bool oyobyok_wifi_connected_name(char* buf,int n){
     snprintf(buf,n,"%s",s_connected);
     return s_connected[0]!=0;
 }
+bool oyobyok_wifi_ip(char* buf,int n){ if(!s_ip[0]) return false; snprintf(buf,n,"%s",s_ip); return true; }

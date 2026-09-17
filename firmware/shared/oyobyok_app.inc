@@ -34,6 +34,7 @@ enum { SCR_MENU=1, SCR_EDITOR, SCR_LIST, SCR_ENTRY, SCR_ALERT, SCR_GITSTATUS, SC
 #define LT_SFTP       206   // configured SFTP servers
 #define LT_GITREPO    207   // configured Git repos
 #define LT_SFTPPROJ   208   // project folders to push to the chosen SFTP server
+#define LT_SFTPPICK   209   // inside that project: whole folder, a sub-folder, or one file
 
 // ---- device hooks (NULL on the emulator) --------------------------------------------------------
 static int         (*s_bt_scan)(int seconds)=0;
@@ -52,7 +53,12 @@ static int         (*s_disk_enter)(void)=0;
 static void        (*s_ssh_test)(void)=0;
 static const char* (*s_ssh_result)(void)=0;
 static int         (*s_sftp_list)(char(*)[33],int)=0;
-static void        (*s_sftp_push)(int index,const char* project)=0;
+static void        (*s_sftp_push)(int index,const char* project,const char* rel)=0;   // rel "" = the whole project
+static int         (*s_sftpd_start)(void)=0;
+static void        (*s_sftpd_stop)(void)=0;
+static int         (*s_sftpd_ip)(char*,int)=0;
+static int         (*s_sftpd_client)(void)=0;
+static int         (*s_sftpd_files)(void)=0;
 static int         (*s_sftp_progress)(void)=0;
 static const char* (*s_sftp_result)(void)=0;
 static void        (*s_git_sync)(const char* project)=0;
@@ -81,7 +87,7 @@ static char edbuf[8192]; static int edlen=0;
 static char entryPrompt[64]="", entryBuf[256];
 static char alertTitle[64], alertMsg[256];
 static char listItems[32][48]; static int listN=0, listSel=0, listType=0;
-enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8, FK_MOVEHERE=9, FK_MOVECANCEL=10 };
+enum { FK_FILE=0, FK_DIR=1, FK_UP=2, FK_NEWFILE=3, FK_NEWFOLDER=4, FK_NEWPROJ=5, FK_BACK=6, FK_PLAIN=7, FK_MANAGE=8, FK_MOVEHERE=9, FK_MOVECANCEL=10, FK_SENDALL=11 };
 static int  listKind[32];
 enum { NL_MANAGE, NL_DELCONFIRM };
 static int  nMode=NL_MANAGE, nN=0, nSel=0;
@@ -90,13 +96,15 @@ static int  s_bt_pending=0, s_bt_ndev=0;
 static int  entryCtxFS=0;        // naming a new object: 1 file, 2 folder, 3 project
 static int  entryCtxRename=0;
 static int  entryCtxWifi=0, entryCtxWifiName=0;
-static int  s_manage=0;          // file manager in Manage (rename/move/delete) mode
+static int  s_manage=0;          // file manager in Manage mode
 static char mgTarget[64]="";  static int mgIsDir=0;
-static char mvSrc[480]="";       // full path of the item being moved, empty when not moving
+static char mvSrc[480]="";       // empty when nothing is being moved
 static char wifiSSID[33]="";
 static char curProject[64]="", curFile[64]="", lastPush[24]="never";
 static char curDir[400]="", appReposRoot[256]="";
 static int  s_sftpSrv=0; static char s_sftpSrvName[33]=""; static int s_sftpEstFiles=0; static char s_sftpEst[40]="";
+static char s_sftpProj[48]="", s_sftpRel[256]="";
+static int  s_serving=0;
 static GitResult gStat; static GitRemote gRem;
 
 static int  ci_eq(const char* a,const char* b){ for(;*a&&*b;a++,b++){
@@ -124,8 +132,8 @@ static void sync_radio(int on){
 }
 static int in_sync_area(void){
     if(screen==SCR_EDITOR) return 0;
-    return curmenu==M_CONN||curmenu==M_GIT||curmenu==M_WIFI
-        ||listType==LT_WIFI_SCAN||listType==LT_WIFI_KNOWN||listType==LT_SFTP||listType==LT_SFTPPROJ||listType==LT_GITREPO;
+    return curmenu==M_CONN||curmenu==M_GIT||curmenu==M_WIFI||curmenu==M_SFTP
+        ||listType==LT_WIFI_SCAN||listType==LT_WIFI_KNOWN||listType==LT_SFTP||listType==LT_SFTPPROJ||listType==LT_SFTPPICK||listType==LT_GITREPO;
 }
 static void op_finished(void){ s_sync_busy=0; alertBusy=0; if(!in_sync_area()) sync_radio(0); }
 static void alert(const char* title,const char* msg){
@@ -305,7 +313,7 @@ static void browser_render(void){
         else if(k==FK_UP||k==FK_BACK) blit(9,y+1,G_BACK,7,7);
         else if(k==FK_FILE)           blit(10,y,G_DOC,8,6);
         else if(k==FK_MANAGE)         blit(10,y+1,s_manage?G_CHECK:G_PENCIL,7,7);
-        else if(k==FK_MOVEHERE)       blit(10,y+1,G_CHECK,7,7);
+        else if(k==FK_MOVEHERE||k==FK_SENDALL) blit(10,y+1,G_CHECK,7,7);
         else tx=9;
         text(tx,y,listItems[idx]);
     }
@@ -429,8 +437,7 @@ static void browser_refill(void){
     listN=0; listSel=0; listType=LT_FILE;
     int atRoot = (strcmp(cur_dir(),appReposRoot)==0);
     if(mvSrc[0]){
-        // Moving: the list is for choosing a destination. A file cannot land at the root, where
-        // only project folders are shown; the item on the move is hidden from the listing.
+        // Files cannot land at the root, where only project folders are listed.
         snprintf(listItems[listN],48,"Back");  listKind[listN]=atRoot?FK_BACK:FK_UP; listN++;
         if(!atRoot || mgIsDir){ snprintf(listItems[listN],48,"Move here"); listKind[listN]=FK_MOVEHERE; listN++; }
         snprintf(listItems[listN],48,"Cancel move");         listKind[listN]=FK_MOVECANCEL; listN++;
@@ -490,7 +497,6 @@ static int rm_rf(const char* path){
     }
     return unlink(path);
 }
-// "Move here": the item on the move lands in the current folder under its own name.
 static void move_finish(void){
     char dst[600]; snprintf(dst,sizeof dst,"%s/%.63s",cur_dir(),mgTarget);
     struct stat st;
@@ -542,8 +548,11 @@ void oyobyok_app_set_hw(void(*set_contrast)(int),void(*set_kblayout)(int)){ s_se
 void oyobyok_app_set_led(void(*led)(int)){ s_led=led; }
 void oyobyok_app_set_disk(int(*enter)(void)){ s_disk_enter=enter; }
 void oyobyok_app_set_ssh(void(*test)(void),const char*(*result)(void)){ s_ssh_test=test; s_ssh_result=result; }
-void oyobyok_app_set_sftp(int(*list)(char(*)[33],int),void(*push)(int,const char*),const char*(*result)(void),int(*progress)(void)){
+void oyobyok_app_set_sftp(int(*list)(char(*)[33],int),void(*push)(int,const char*,const char*),const char*(*result)(void),int(*progress)(void)){
     s_sftp_list=list; s_sftp_push=push; s_sftp_result=result; s_sftp_progress=progress;
+}
+void oyobyok_app_set_sftpd(int(*start)(void),void(*stop)(void),int(*ip)(char*,int),int(*client)(void),int(*files)(void)){
+    s_sftpd_start=start; s_sftpd_stop=stop; s_sftpd_ip=ip; s_sftpd_client=client; s_sftpd_files=files;
 }
 void oyobyok_app_set_git(void(*sync)(const char*),void(*status)(const char*),int(*take)(GitResult*),const char*(*result)(void)){
     s_git_sync=sync; s_git_status_async=status; s_git_status_take=take; s_git_result=result;
@@ -566,9 +575,11 @@ void oyobyok_app_wifi_result(int ok){
     }
 }
 int oyobyok_app_busy(void){ return screen==SCR_ALERT && alertBusy; }
+static void serve_status_line(void);
 int oyobyok_app_tick(void){
     if(!oyobyok_app_busy()) return 0;
     alertSecs++;
+    if(s_serving){ if(strncmp(alertMsg,"Stopping",8)!=0) serve_status_line(); return 1; }
     if(s_sftp_progress && strncmp(alertTitle,"SFTP",4)==0){
         char* nl=strchr(alertMsg,'\n');
         if(nl) snprintf(nl+1,sizeof alertMsg-(nl+1-alertMsg),"%d/%d files  (%s)",s_sftp_progress(),s_sftpEstFiles,s_sftpEst);
@@ -608,6 +619,7 @@ void oyobyok_app_ssh_result(void){
     snprintf(alertMsg,sizeof alertMsg,"%s", (m&&*m)?m:"Done.");
 }
 void oyobyok_app_sftp_result(void){
+    if(s_serving){ s_serving=0; LED(BLED_SYNC_OK); }
     op_finished();
     if(screen!=SCR_ALERT) return;
     const char* m = s_sftp_result ? s_sftp_result() : 0;
@@ -636,11 +648,25 @@ void oyobyok_app_save_close(void){
 
 // ---- menus and pickers --------------------------------------------------------------------------
 static void open_native_list(int lt);
+static void sftp_pick_up(void){
+    char* sl=strrchr(s_sftpRel,'/');
+    if(sl) { *sl=0; open_native_list(LT_SFTPPICK); }
+    else if(s_sftpRel[0]) { s_sftpRel[0]=0; open_native_list(LT_SFTPPICK); }
+    else open_native_list(LT_SFTPPROJ);
+}
+static void serve_status_line(void){
+    char ip[20]="?"; if(s_sftpd_ip) s_sftpd_ip(ip,sizeof ip);
+    int client = s_sftpd_client ? s_sftpd_client() : 0;
+    int files  = s_sftpd_files  ? s_sftpd_files()  : 0;
+    if(client) snprintf(alertMsg,sizeof alertMsg,"sftp byok@%s\nClient connected. %d file%s so far.",ip,files,files==1?"":"s");
+    else if(files) snprintf(alertMsg,sizeof alertMsg,"sftp byok@%s\nWaiting. %d file%s so far.",ip,files,files==1?"":"s");
+    else snprintf(alertMsg,sizeof alertMsg,"sftp byok@%s\nServing Projects. Waiting.",ip);
+}
 static void menu_back(void){
     if(curmenu==M_GIT){ open_native_list(LT_GITREPO); return; }
     if(curmenu==M_CONN){ sync_radio(0); curmenu=M_MAIN; }
     else if(curmenu==M_SETTINGS||curmenu==M_BT) curmenu=M_MAIN;
-    else if(curmenu==M_WIFI) curmenu=M_CONN;
+    else if(curmenu==M_WIFI||curmenu==M_SFTP) curmenu=M_CONN;
     screen=SCR_MENU;
 }
 static void open_native_list(int lt){
@@ -677,6 +703,18 @@ static void open_native_list(int lt){
           closedir(dp); }
         if(listN==1){ snprintf(listItems[listN],48,"(no projects yet)"); listKind[listN]=FK_PLAIN; listN++; }
         for(int i=1;i<listN;i++) if(curProject[0]&&strcmp(listItems[i],curProject)==0){ listSel=i; break; }
+    } else if(lt==LT_SFTPPICK){
+        snprintf(listItems[listN],48,s_sftpRel[0]?"This folder":"Whole project"); listKind[listN]=FK_SENDALL; listN++;
+        char pth[640]; snprintf(pth,sizeof pth,"%s/%s%s%s",appReposRoot,s_sftpProj,s_sftpRel[0]?"/":"",s_sftpRel);
+        DIR* dp=opendir(pth);
+        if(dp){ for(int pass=0;pass<2;pass++){ rewinddir(dp); struct dirent* e;
+            while((e=readdir(dp)) && listN<30){
+                if(e->d_name[0]=='.') continue;
+                char full[900]; snprintf(full,sizeof full,"%s/%.90s",pth,e->d_name);
+                struct stat st; if(stat(full,&st)!=0) continue;
+                int isdir=S_ISDIR(st.st_mode)?1:0; if((pass==0)!=(isdir!=0)) continue;
+                snprintf(listItems[listN],48,"%.46s",e->d_name); listKind[listN]=isdir?FK_DIR:FK_FILE; listN++; } }
+          closedir(dp); }
     } else if(lt==LT_GITREPO){
         static char repos[24][64];
         int cnt = git_list_repos(repos,24);
@@ -696,7 +734,17 @@ static void menu_select(int ev){
             if(!s_ssh_test){ not_available("SSH Test"); break; }
             alert("SSH Test","Connecting to GitHub..."); BUSY(90); s_sync_busy=1; s_ssh_test();
             break;
-        case EV_SFTP: open_native_list(LT_SFTP); break;
+        case EV_SFTP:     curmenu=M_SFTP;     selByMenu[M_SFTP&127]=0;     screen=SCR_MENU; break;
+        case EV_SFTP_SEND: open_native_list(LT_SFTP); break;
+        case EV_SFTP_SERVE: {
+            if(!s_sftpd_start){ not_available("SFTP Serve"); break; }
+            if(!wifi_ready_or_alert()) break;
+            if(s_sftpd_start()!=0){ alert("SFTP Serve","Could not start. Try again shortly."); break; }
+            s_serving=1; s_sync_busy=1; LED(BLED_SYNCING);
+            snprintf(alertTitle,sizeof alertTitle,"SFTP Serve");
+            serve_status_line();
+            screen=SCR_ALERT; BUSY(0);
+            break; }
         case EV_DISK:
             if(!s_disk_enter){ not_available("Disk Mode"); break; }
             LED(BLED_DISK_MODE);
@@ -798,14 +846,22 @@ static void app_enter(void){
             if(listSel>0){ s_cursorHoriz=(listSel-1)?1:0; prefs_save(); }
             curmenu=M_SETTINGS; screen=SCR_MENU;
         } else if(listType==LT_SFTP){
-            if(listSel==0 || !s_sftp_push || listKind[listSel]!=FK_PLAIN){ listType=0; curmenu=M_CONN; screen=SCR_MENU; return; }
+            if(listSel==0 || !s_sftp_push || listKind[listSel]!=FK_PLAIN){ listType=0; curmenu=M_SFTP; screen=SCR_MENU; return; }
             s_sftpSrv=listSel-1; snprintf(s_sftpSrvName,sizeof s_sftpSrvName,"%.32s",listItems[listSel]);
             open_native_list(LT_SFTPPROJ);
         } else if(listType==LT_SFTPPROJ){
             if(listSel==0 || listKind[listSel]!=FK_DIR){ open_native_list(LT_SFTP); return; }
-            char proj[48]; snprintf(proj,sizeof proj,"%s",listItems[listSel]);
-            char pth[320]; snprintf(pth,sizeof pth,"%s/%s",appReposRoot,proj);
-            int files=0; unsigned long bytes=0; dir_stats(pth,&files,&bytes,0);
+            snprintf(s_sftpProj,sizeof s_sftpProj,"%s",listItems[listSel]); s_sftpRel[0]=0;
+            open_native_list(LT_SFTPPICK);
+        } else if(listType==LT_SFTPPICK){
+            int k=listKind[listSel];
+            if(listSel==0){ sftp_pick_up(); return; }
+            if(k==FK_DIR){ size_t n=strlen(s_sftpRel); snprintf(s_sftpRel+n,sizeof s_sftpRel-n,"%s%.63s",n?"/":"",listItems[listSel]); open_native_list(LT_SFTPPICK); return; }
+            char rel[320]; snprintf(rel,sizeof rel,"%s%s%s",s_sftpRel,(s_sftpRel[0]&&k==FK_FILE)?"/":"",k==FK_FILE?listItems[listSel]:"");
+            char proj[48]; snprintf(proj,sizeof proj,"%s",s_sftpProj);
+            char pth[700]; snprintf(pth,sizeof pth,"%s/%s%s%s",appReposRoot,proj,rel[0]?"/":"",rel);
+            int files=0; unsigned long bytes=0;
+            { struct stat st; if(stat(pth,&st)==0 && !S_ISDIR(st.st_mode)){ files=1; bytes=(unsigned long)st.st_size; } else dir_stats(pth,&files,&bytes,0); }
             // Measured: about 1.4 s per file of SFTP round trips plus roughly 40 KB/s.
             unsigned est_s=(unsigned)(files*1.4 + bytes/40000.0 + 2);
             char sz[16]; if(bytes<1024) snprintf(sz,sizeof sz,"%lu B",bytes);
@@ -814,8 +870,9 @@ static void app_enter(void){
             char tm[16]; if(est_s<90) snprintf(tm,sizeof tm,"~%u s",est_s); else snprintf(tm,sizeof tm,"~%u min",(est_s+30)/60);
             s_sftpEstFiles=files; snprintf(s_sftpEst,sizeof s_sftpEst,"est %s, %s",sz,tm);
             snprintf(alertTitle,sizeof alertTitle,"SFTP: %.20s",s_sftpSrvName);
-            snprintf(alertMsg,sizeof alertMsg,"Pushing %.24s ...\n%s",proj,s_sftpEst);
-            listType=0; screen=SCR_ALERT; BUSY(600); s_sync_busy=1; s_sftp_push(s_sftpSrv,proj);
+            const char* shown = k==FK_FILE ? listItems[listSel] : (rel[0] ? strrchr(rel,'/') ? strrchr(rel,'/')+1 : rel : proj);
+            snprintf(alertMsg,sizeof alertMsg,"Pushing %.24s ...\n%s",shown,s_sftpEst);
+            listType=0; screen=SCR_ALERT; BUSY(600); s_sync_busy=1; s_sftp_push(s_sftpSrv,proj,rel);
         } else if(listType==LT_GITREPO){
             if(listSel==0 || listKind[listSel]!=FK_DIR){ listType=0; curmenu=M_CONN; screen=SCR_MENU; return; }
             snprintf(curProject,sizeof curProject,"%.63s",listItems[listSel]);
@@ -887,9 +944,11 @@ static void app_esc(void){
                    browser_refill(); }
         } else {
             if(listType==LT_SFTPPROJ){ open_native_list(LT_SFTP); return; }
+            if(listType==LT_SFTPPICK){ sftp_pick_up(); return; }
             if(listType==LT_WIFI_SCAN||listType==LT_WIFI_KNOWN) curmenu=M_WIFI;
             else if(listType==LT_KB||listType==LT_CURSOR)       curmenu=M_SETTINGS;
-            else if(listType==LT_SFTP||listType==LT_GITREPO)    curmenu=M_CONN;
+            else if(listType==LT_SFTP)                          curmenu=M_SFTP;
+            else if(listType==LT_GITREPO)                       curmenu=M_CONN;
             else                                               curmenu=M_BT;
             listType=0; screen=SCR_MENU;
         }
@@ -900,7 +959,9 @@ static void app_esc(void){
         else if(entryCtxWifi||entryCtxWifiName){ entryCtxWifi=0; entryCtxWifiName=0; curmenu=M_WIFI; screen=SCR_MENU; }
         else { screen=SCR_MENU; }
     }
-    else if(screen==SCR_ALERT){ alertBusy=0; screen=have_editor?SCR_EDITOR:SCR_MENU; }
+    else if(screen==SCR_ALERT){
+        if(s_serving){ if(s_sftpd_stop) s_sftpd_stop(); snprintf(alertMsg,sizeof alertMsg,"Stopping ..."); return; }
+        alertBusy=0; screen=have_editor?SCR_EDITOR:SCR_MENU; }
     else if(screen==SCR_GITSTATUS){ screen=SCR_MENU; }
     else if(screen==SCR_NLIST){ browser_refill(); screen=SCR_LIST; }
     else if(screen==SCR_CONTRAST){ prefs_save(); curmenu=M_SETTINGS; screen=SCR_MENU; }

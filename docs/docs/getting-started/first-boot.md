@@ -41,7 +41,7 @@ The SSH stack is libssh2 on mbedTLS. It handles RSA and ECDSA keys in PEM form, 
 ssh-keygen -t rsa -b 3072 -m PEM -N "" -f oyobyok_rsa
 ```
 
-Copy `oyobyok_rsa` and `oyobyok_rsa.pub` into `/git/keys/` on the card. Add the contents of the `.pub` file to your Git host as a deploy key with write access, or to your account, and to `~/.ssh/authorized_keys` on any SFTP server you want to push to. The private key never leaves the device.
+Copy `oyobyok_rsa` and `oyobyok_rsa.pub` into `/git/keys/` on the card. Add the contents of the `.pub` file to your Git host as a deploy key with write access, or to your account, and to `~/.ssh/authorized_keys` on any SFTP server you want to push to. Keep the private key on your machine as well: it is what logs you in when the device serves SFTP.
 
 An ECDSA key works too (`ssh-keygen -t ecdsa -b 256 -m PEM ...`). With ECDSA the `.pub` file must be present next to the private key, because the mbedTLS backend can only derive the public half for RSA.
 

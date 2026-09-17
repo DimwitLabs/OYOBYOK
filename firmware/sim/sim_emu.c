@@ -15,7 +15,12 @@
 
 static int  demo_sftp_list(char names[][33],int max){ (void)max; snprintf(names[0],33,"Laptop"); snprintf(names[1],33,"Study Pi"); return 2; }
 static int  demo_files=0;
-static void demo_sftp_push(int i,const char* p){ (void)i;(void)p; demo_files=0; }
+static void demo_sftp_push(int i,const char* p,const char* rel){ (void)i;(void)p;(void)rel; demo_files=0; }
+static int  demo_serve_start(void){ return 0; }
+static void demo_serve_stop(void){}
+static int  demo_serve_ip(char* b,int n){ snprintf(b,n,"192.168.1.23"); return 1; }
+static int  demo_serve_client(void){ return 0; }
+static int  demo_serve_files(void){ return 0; }
 static int  demo_sftp_progress(void){ if(demo_files<42) demo_files+=3; return demo_files; }
 static const char* demo_result(void){ return ""; }
 static void demo_git_sync(const char* p){ (void)p; }
@@ -29,6 +34,7 @@ int main(void){
     if(getenv("OYOBYOK_EMU_DEMO")){
         oyobyok_app_set_sftp(demo_sftp_list,demo_sftp_push,demo_result,demo_sftp_progress);
         oyobyok_app_set_git(demo_git_sync,demo_git_status,demo_git_take,demo_result);
+        oyobyok_app_set_sftpd(demo_serve_start,demo_serve_stop,demo_serve_ip,demo_serve_client,demo_serve_files);
         oyobyok_app_set_disk(demo_disk_enter);
     }
     char line[512]; int frame=0; char png[64];

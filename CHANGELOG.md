@@ -9,7 +9,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - `Move` in Manage mode: pick a file or folder, walk to another folder, `Move here`.
+- `SFTP` > `Serve`: the device as an SFTP server over the Projects folder, public-key login with its own key pair or `/git/authorized_keys`.
+- `SFTP` > `Send` can push one file or one folder, not only a whole project.
 - Backspace, arrows and letters repeat after a short delay while the key stays down; the keyboard itself only reports changes.
+
+### Changed
+
+- `Synchronise` > `SFTP` is now a menu: `Serve` and `Send`. The old server list lives under `Send`.
 
 ## [1.0.0] - 2026-09-05
 

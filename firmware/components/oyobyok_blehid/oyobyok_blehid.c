@@ -34,7 +34,7 @@ static uint8_t s_prev[6];
 #define REPEAT_DELAY_MS 380
 #define REPEAT_RATE_MS  38
 static esp_timer_handle_t s_rep_timer;
-static uint8_t  s_rep_usage, s_rep_mod;   // the key being held for repeat, 0 when none
+static uint8_t  s_rep_usage, s_rep_mod;   // 0 when nothing is held
 static int64_t  s_rep_next_us;
 
 static uint8_t  s_conn_bda[6];

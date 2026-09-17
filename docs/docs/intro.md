@@ -32,7 +32,7 @@ Everything is native C. There is no scripting layer, no runtime, no app store. T
 
 - **Projects:** Folders of plain text on the SD card. Make a project, make files and sub-folders inside it, rename and delete from the device. The editor wraps words, has a cursor you can move around with the arrow keys, `Home`, `End`, `Page Up`, `Page Down`, `Shift` + arrow to select, and copy, cut and paste.
 - **Git Sync:** One verb. Sync commits whatever changed on the device, fetches, rebases your commits on top of the remote, and pushes. Conflicts never stop the device and never ask a question: the file keeps both versions with the usual markers and goes up like that, and you tidy it up on a computer later. Any Git host that speaks SSH works.
-- **SFTP push:** Pick a server, pick a project, and it uploads that folder into a directory on your machine. Nothing on the server is ever deleted.
+- **SFTP, both ways:** Serve turns the device into an SFTP server so your laptop can browse and copy the projects. Send pushes a project, a folder or one file to a server of yours; nothing there is ever deleted.
 - **Bluetooth keyboard:** Pair once. The device remembers it and reconnects on its own, at boot and after a drop, even as the keyboard rotates its private address. Bluetooth only for now: the stock firmware also takes USB keyboards, and OYOBYOK does not yet.
 - **WiFi on demand:** The radio is off while you write. It comes up when you open the Synchronise page and goes away when you leave it, so the keyboard has the radio and the memory to itself the rest of the time.
 - **Disk Mode:** The SD card becomes a USB drive on your computer. This is how you drop in keys and config, and how you get files off without any network at all.

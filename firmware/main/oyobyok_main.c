@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -22,6 +23,7 @@
 #include "oyobyok_ssh.h"
 #include "oyobyok_wifi.h"
 #include "oyobyok_blehid.h"
+#include "oyobyok_sshd.h"
 
 static const char* TAG="oyobyok";
 static QueueHandle_t s_key_q;
@@ -120,7 +122,7 @@ static int sftp_list_hook(char names[][33],int max){
 }
 static char s_sftp_msg[192]="";
 static const char* sftp_result_hook(void){ return s_sftp_msg; }
-static int s_sftp_idx=0; static char s_sftp_proj[64]="";
+static int s_sftp_idx=0; static char s_sftp_proj[64]="", s_sftp_rel[256]="";
 static void sftp_push_task(void* arg){
     (void)arg; int idx=s_sftp_idx;
     if(idx<0||idx>=s_sftp_n){
@@ -131,26 +133,52 @@ static void sftp_push_task(void* arg){
         char pub[176];  snprintf(pub,sizeof pub,"%s.pub",priv);
         oyobyok_ssh_opts_t o={ .host=sv.host,.port=sv.port,.user=sv.user,.privkey=priv,.pubkey=pub,.passphrase="" };
         oyobyok_ssh_session_t* s=NULL; char err[128]="";
-        char lpath[192], rpath[192];
-        snprintf(lpath,sizeof lpath,"/sdcard/projects/%s",s_sftp_proj);
-        snprintf(rpath,sizeof rpath,"%s/%s",sv.rpath,s_sftp_proj);
+        char lpath[480], rpath[480];
+        const char* sep = s_sftp_rel[0] ? "/" : "";
+        snprintf(lpath,sizeof lpath,"/sdcard/projects/%.63s%s%.255s",s_sftp_proj,sep,s_sftp_rel);
+        snprintf(rpath,sizeof rpath,"%.95s/%.63s%s%.255s",sv.rpath,s_sftp_proj,sep,s_sftp_rel);
+        const char* what = s_sftp_rel[0] ? (strrchr(s_sftp_rel,'/') ? strrchr(s_sftp_rel,'/')+1 : s_sftp_rel) : s_sftp_proj;
+        struct stat st; int isfile = (stat(lpath,&st)==0 && !S_ISDIR(st.st_mode));
         oyobyok_ssh_err_t rc=oyobyok_ssh_connect(&o,&s,err,sizeof err);
         if(rc!=OYOBYOK_SSH_OK){
             snprintf(s_sftp_msg,sizeof s_sftp_msg,"Connect: %s",err[0]?err:oyobyok_ssh_strerror(rc));
         } else {
             char perr[128]="";
-            int nf=oyobyok_ssh_sftp_push_dir(s,lpath,rpath,perr,sizeof perr);
+            int nf = isfile ? (oyobyok_ssh_sftp_push_file(s,lpath,rpath,perr,sizeof perr)==0 ? 1 : -1)
+                            : oyobyok_ssh_sftp_push_dir(s,lpath,rpath,perr,sizeof perr);
             oyobyok_ssh_disconnect(&s);
             if(nf<0) snprintf(s_sftp_msg,sizeof s_sftp_msg,"Push failed: %s",perr[0]?perr:"error");
-            else     snprintf(s_sftp_msg,sizeof s_sftp_msg,"Pushed %d file%s of %.20s to %.16s",nf,nf==1?"":"s",s_sftp_proj,sv.name);
+            else     snprintf(s_sftp_msg,sizeof s_sftp_msg,"Pushed %d file%s of %.20s to %.16s",nf,nf==1?"":"s",what,sv.name);
         }
     }
     post_ctl(OYOBYOK_CTL_SFTP_DONE);
 }
-static void sftp_push_hook(int idx,const char* project){
+static void sftp_push_hook(int idx,const char* project,const char* rel){
     s_sftp_idx=idx; snprintf(s_sftp_proj,sizeof s_sftp_proj,"%s",project?project:"");
+    snprintf(s_sftp_rel,sizeof s_sftp_rel,"%s",rel?rel:"");
     net_spawn(sftp_push_task,"sftp_push",s_sftp_msg,sizeof s_sftp_msg,OYOBYOK_CTL_SFTP_DONE);
 }
+
+// ---- SFTP Serve ----------------------------------------------------------------------------------
+// The device's own key pair is trusted because its private half was made on the owner's machine.
+static void sshd_task(void* arg){
+    (void)arg;
+    oyobyok_blehid_set_sync_mode(true);
+    oyobyok_sshd_cfg_t cfg={ .root="/sdcard/projects", .host_key_path=GIT_CFG "/keys/host_ecdsa",
+                             .authorized_keys=GIT_CFG "/authorized_keys", .own_pubkey=KEY_PATH ".pub", .port=22 };
+    char err[96]="";
+    int rc=oyobyok_sshd_run(&cfg,err,sizeof err);
+    oyobyok_blehid_set_sync_mode(false);
+    int files=oyobyok_sshd_files_touched();
+    if(rc!=0) snprintf(s_sftp_msg,sizeof s_sftp_msg,"Could not serve: %s",err[0]?err:"error");
+    else      snprintf(s_sftp_msg,sizeof s_sftp_msg,"Stopped. %d file%s opened by clients.",files,files==1?"":"s");
+    post_ctl(OYOBYOK_CTL_SFTP_DONE);
+}
+static int  sshd_start_hook(void){ return net_spawn(sshd_task,"sshd",s_sftp_msg,sizeof s_sftp_msg,OYOBYOK_CTL_SFTP_DONE) ? 0 : -1; }
+static void sshd_stop_hook(void){ oyobyok_sshd_stop(); }
+static int  sshd_ip_hook(char* b,int n){ return oyobyok_wifi_ip(b,n)?1:0; }
+static int  sshd_client_hook(void){ return oyobyok_sshd_client_connected()?1:0; }
+static int  sshd_files_hook(void){ return oyobyok_sshd_files_touched(); }
 
 // ---- Git -----------------------------------------------------------------------------------------
 static char s_git_msg[256]="";
@@ -269,6 +297,7 @@ void app_main(void){
     oyobyok_ssh_init();
     oyobyok_app_set_ssh(ssh_test_hook, ssh_result_hook);
     oyobyok_app_set_sftp(sftp_list_hook, sftp_push_hook, sftp_result_hook, oyobyok_ssh_sftp_files_done);
+    oyobyok_app_set_sftpd(sshd_start_hook, sshd_stop_hook, sshd_ip_hook, sshd_client_hook, sshd_files_hook);
     oyobyok_app_set_git(git_sync_hook, git_status_hook, git_status_take_hook, git_result_hook);
 
     xTaskCreate(power_sense_task,"pwr_sense",3072,NULL,3,NULL);
